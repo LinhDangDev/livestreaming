@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import VideoFeed from './VideoFeed';
 import BottomControls from './BottomControls';
 import ChatPanel from './ChatPanel';
