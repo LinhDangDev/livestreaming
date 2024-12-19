@@ -22,4 +22,4 @@ export default function VideoCallScreen() {
       {isChatPanelVisible && <ChatPanel onClose={toggleChatPanel} />}
     </div>
   );
-}
+} 

@@ -1,11 +1,17 @@
 package com.example.backendstreaming.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "streams")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Streams {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

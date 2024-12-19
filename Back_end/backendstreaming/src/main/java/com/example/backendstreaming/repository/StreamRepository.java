@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface StreamRepository extends JpaRepository<Streams, Integer> {
+    Streams findByStreamKey(String streamKey);
 }
