@@ -1,5 +1,5 @@
 import './App.css'
-import VideoCallScreen from './components/screen/screen'
+import VideoCallScreen from './components/screen/VideoCallScreen.tsx'
 
 function App() {
   return (

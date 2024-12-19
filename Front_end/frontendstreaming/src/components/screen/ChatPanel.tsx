@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Shield, X, Send } from 'lucide-react';
-
-export default function ChatPanel() {
+export default function ChatPanel({ onClose }: { onClose: () => void })
+{
   const [message, setMessage] = useState('');
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -13,10 +13,12 @@ export default function ChatPanel() {
   };
 
   return (
-    <Card className="w-80 border-0 rounded-none bg-white flex flex-col">
+    <Card
+      className="h-full w-80 border-0 rounded-none bg-white flex flex-col"
+    >
       <div className="p-4 border-b flex items-center justify-between">
         <h2 className="font-medium">Tin nhắn trong cuộc gọi</h2>
-        <button className="text-gray-500 hover:text-gray-700">
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
           <X className="w-5 h-5" />
         </button>
       </div>

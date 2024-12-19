@@ -1,6 +1,6 @@
 import { Mic, Camera, MonitorUp, PictureInPicture, MessageCircle, Users, MoreVertical, Phone } from 'lucide-react';
 
-export default function BottomControls() {
+export default function BottomControls({ onToggleChatPanel }: { onToggleChatPanel: () => void }) {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/50 backdrop-blur-sm flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
@@ -18,7 +18,7 @@ export default function BottomControls() {
         <button className="p-2 rounded-full hover:bg-gray-700 text-white">
           <PictureInPicture className="w-5 h-5" />
         </button>
-        <button className="p-2 rounded-full hover:bg-gray-700 text-white">
+        <button className="p-2 rounded-full hover:bg-gray-700 text-white" onClick={onToggleChatPanel}>
           <MessageCircle className="w-5 h-5" />
         </button>
         <button className="p-2 rounded-full hover:bg-gray-700 text-white">
