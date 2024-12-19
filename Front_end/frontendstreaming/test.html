@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Call Interface</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="h-screen bg-black flex">
+  <!-- Main content -->
+  <div class="flex-1 relative">
+    <!-- Video feed -->
+    <div class="relative w-full h-full">
+      <img src="/Front_end/frontendstreaming/src/assets/background.svg" alt="Video feed"
+        class="w-full h-full object-cover" />
+      <div class="absolute bottom-4 left-4 text-white/80 text-sm flex items-center gap-2">
+        <span>14:06</span>
+        <span class="text-gray-400">|</span>
+        <span>cxa-mmst-moz</span>
+      </div>
+    </div>
+
+    <!-- Bottom controls -->
+    <div
+      class="absolute bottom-0 left-0 right-0 h-16 bg-black/50 backdrop-blur-sm flex items-center justify-between px-4">
+      <div class="flex items-center gap-2">
+        <button class="p-2 rounded-full hover:bg-gray-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6h6v13M15 19l3 3m0-3l-3-3" />
+          </svg>
+        </button>
+        <button class="p-2 rounded-full hover:bg-gray-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 10l4.5 4.5m0 0L15 19m4.5-4.5H9m0 0l4.5-4.5m0 0L9 10" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button class="p-2 rounded-full hover:bg-gray-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-7 7-7-7" />
+          </svg>
+        </button>
+        <button class="p-2 rounded-full hover:bg-gray-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 10V4a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 001 1h1a1 1 0 011 1v7a2 2 0 01-2 2h-8a2 2 0 01-2-2v-7a1 1 0 011-1h1a1 1 0 001-1z" />
+          </svg>
+        </button>
+        <button class="p-2 rounded-full hover:bg-gray-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l6-6-6-6" />
+          </svg>
+        </button>
+        <button class="p-2 rounded-full bg-red-600 hover:bg-red-700 text-white">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat panel -->
+  <div class="w-80 border-0 rounded-none bg-white flex flex-col">
+    <div class="p-4 border-b flex items-center justify-between">
+      <h2 class="font-medium">Tin nhắn trong cuộc gọi</h2>
+      <button class="text-gray-500 hover:text-gray-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="p-4 space-y-4 flex-grow overflow-y-auto">
+      <div class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h6" />
+        </svg>
+        <div class="flex items-center gap-2">
+          <span>Cho phép mọi người nhắn tin</span>
+          <div class="relative inline-block w-10 mr-2 align-middle select-none">
+            <input type="checkbox" name="toggle" id="toggle" class="toggle-checkbox hidden" />
+            <label for="toggle"
+              class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-sm text-gray-600">
+        Bạn có thể ghim tin nhắn để những người tham gia sau có thể nhìn thấy, khi có cuộc gọi, bạn sẽ không thể truy
+        cập vào cuộc trò chuyện này.
+      </p>
+    </div>
+
+    <!-- Message input -->
+    <form class="p-4 border-t flex items-center gap-2">
+      <input type="text" placeholder="Nhập tin nhắn..."
+        class="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <button type="submit"
+        class="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </button>
+    </form>
+  </div>
+</body>
+
+</html>
