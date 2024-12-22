@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Header from './Header'
 import VideoPreview from './VideoPreview'
 import Sidebar from './Sidebar'
+import axios from 'axios'
 
 // Rename the component to CreateStream
 export default function CreateStream() {
@@ -54,11 +55,28 @@ export default function CreateStream() {
     }
   }
 
-  const handleCreateStream = () => {
-    // Logic to create livestream
-    // On success:
-    navigate('/live') // Navigate to the '/live' route
-  }
+  const handleCreateStream = async () => {
+    try {
+      const response = await axios.post('http://localhost:3000/api/streams/create', {
+        title: 'My Stream', // You can add a title input field
+        streamerName: 'DisplayName' // Get this from user input or context
+      });
+
+      const { streamKey, rtmpUrl } = response.data.data;
+
+      // Save stream info to local storage or context
+      localStorage.setItem('streamInfo', JSON.stringify({
+        streamKey,
+        rtmpUrl
+      }));
+
+      // Navigate to live screen
+      navigate('/live');
+    } catch (error) {
+      console.error('Failed to create stream:', error);
+      // Handle error (show notification etc.)
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">

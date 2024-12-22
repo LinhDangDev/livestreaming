@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-const streamRoutes = require('./routes/streamRoutes');
+const streamRoutes = require('./routes/streamsRoutes');
+
 const mediaServer = require('./services/mediaService');
 const chatService = require('./services/chatService');
 
@@ -19,3 +20,11 @@ mediaServer.run();
 
 // Khởi động socket.io cho chat
 chatService(server);
+
+const sequelize = require('./config/config');
+
+
+// Test database connection
+sequelize.authenticate()
+    .then(() => console.log('Database connected successfully'))
+    .catch(err => console.error('Unable to connect to database:', err));

@@ -1,127 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream</title>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <style>
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            padding: 20px;
-        }
-        video {
-            width: 100%;
-            max-width: 800px;
-            border: 1px solid #ccc;
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stream</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    video {
+      width: 100%;
+      max-width: 800px;
+      border: 1px solid #ccc;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <!-- Camera Preview -->
-        <video id="cameraPreview" autoplay muted playsinline></video>
+  <div class="container">
+    <!-- Camera Preview -->
+    <video id="cameraPreview" autoplay muted playsinline></video>
 
-        <!-- Stream Preview -->
-        <video id="streamPreview" controls></video>
+    <!-- Stream Preview -->
+    <video id="streamPreview" controls></video>
 
-        <div class="controls">
-            <button id="startCamera">Start Camera</button>
-            <button id="startStream" disabled>Start Streaming</button>
-            <button id="stopStream" disabled>Stop Streaming</button>
-        </div>
+    <div class="controls">
+      <button id="startCamera">Start Camera</button>
+      <button id="startStream" disabled>Start Streaming</button>
+      <button id="stopStream" disabled>Stop Streaming</button>
     </div>
+  </div>
 
-    <script>
-        const cameraPreview = document.getElementById('cameraPreview');
-        const streamPreview = document.getElementById('streamPreview');
-        const startCameraBtn = document.getElementById('startCamera');
-        const startStreamBtn = document.getElementById('startStream');
-        const stopStreamBtn = document.getElementById('stopStream');
+  <script>
+    const cameraPreview = document.getElementById('cameraPreview');
+    const streamPreview = document.getElementById('streamPreview');
+    const startCameraBtn = document.getElementById('startCamera');
+    const startStreamBtn = document.getElementById('startStream');
+    const stopStreamBtn = document.getElementById('stopStream');
 
-        let mediaStream = null;
-        let mediaRecorder = null;
+    let mediaStream = null;
+    let mediaRecorder = null;
 
-        // Khởi tạo HLS player
-        if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource('/hls/stream.m3u8');
-            hls.attachMedia(streamPreview);
-        }
+    // Khởi tạo HLS player
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource('/hls/stream.m3u8');
+      hls.attachMedia(streamPreview);
+    }
 
-        // Bắt đầu camera
-        startCameraBtn.addEventListener('click', async () => {
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({
-                    video: true,
-                    audio: true
-                });
-                cameraPreview.srcObject = mediaStream;
-                startStreamBtn.disabled = false;
-                startCameraBtn.disabled = true;
-            } catch (error) {
-                console.error('Error accessing camera:', error);
-                alert('Cannot access camera. Please check permissions.');
-            }
+    // Bắt đầu camera
+    startCameraBtn.addEventListener('click', async () => {
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
         });
+        cameraPreview.srcObject = mediaStream;
+        startStreamBtn.disabled = false;
+        startCameraBtn.disabled = true;
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        alert('Cannot access camera. Please check permissions.');
+      }
+    });
 
-        // Bắt đầu stream
-        startStreamBtn.addEventListener('click', () => {
-            if (!mediaStream) return;
+    // Bắt đầu stream
+    startStreamBtn.addEventListener('click', () => {
+      if (!mediaStream) return;
 
-            // Tạo MediaRecorder để ghi video
-            mediaRecorder = new MediaRecorder(mediaStream, {
-                mimeType: 'video/webm;codecs=h264',
-                videoBitsPerSecond: 2500000 // 2.5 Mbps
+      // Tạo MediaRecorder để ghi video
+      mediaRecorder = new MediaRecorder(mediaStream, {
+        mimeType: 'video/webm;codecs=h264',
+        videoBitsPerSecond: 2500000 // 2.5 Mbps
+      });
+
+      // Xử lý dữ liệu stream
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          // Gửi chunk video lên server
+          const formData = new FormData();
+          formData.append('video', event.data);
+
+          try {
+            await fetch('/upload-stream', {
+              method: 'POST',
+              body: formData
             });
+          } catch (error) {
+            console.error('Error uploading stream:', error);
+          }
+        }
+      };
 
-            // Xử lý dữ liệu stream
-            mediaRecorder.ondataavailable = async (event) => {
-                if (event.data.size > 0) {
-                    // Gửi chunk video lên server
-                    const formData = new FormData();
-                    formData.append('video', event.data);
+      mediaRecorder.start(1000); // Gửi chunk mỗi 1 giây
+      startStreamBtn.disabled = true;
+      stopStreamBtn.disabled = false;
+    });
 
-                    try {
-                        await fetch('/upload-stream', {
-                            method: 'POST',
-                            body: formData
-                        });
-                    } catch (error) {
-                        console.error('Error uploading stream:', error);
-                    }
-                }
-            };
-
-            mediaRecorder.start(1000); // Gửi chunk mỗi 1 giây
-            startStreamBtn.disabled = true;
-            stopStreamBtn.disabled = false;
-        });
-
-        // Dừng stream
-        stopStreamBtn.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-            }
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-            }
-            cameraPreview.srcObject = null;
-            startCameraBtn.disabled = false;
-            startStreamBtn.disabled = true;
-            stopStreamBtn.disabled = true;
-        });
-    </script>
+    // Dừng stream
+    stopStreamBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      cameraPreview.srcObject = null;
+      startCameraBtn.disabled = false;
+      startStreamBtn.disabled = true;
+      stopStreamBtn.disabled = true;
+    });
+  </script>
 </body>
+
 </html>

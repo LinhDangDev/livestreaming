@@ -1,47 +1,62 @@
 const streamService = require('../services/streamService');
-onst { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid');
+
 exports.createStream = async (req, res) => {
- try {
-   const streamKey = uuidv4();
-   const { streamerName } = req.body;
+  try {
+    const streamKey = uuidv4();
+    const { title, streamerName } = req.body;
 
-   const stream = await streamService.createStream({
-     stream_key: streamKey,
-     streamer_name: streamerName,
-     status: 'inactive'
-   });
+    // Validate input
+    if (!title || !streamerName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Title and streamer name are required'
+      });
+    }
+
+    const stream = await streamService.createStream({
+      streamKey,
+      title,
+      streamerName,
+      status: 'inactive',
+      rtmpUrl: `rtmp://${process.env.NGINX_HOST}:${process.env.RTMP_PORT}/live/${streamKey}`,
+      playbackUrl: `http://${process.env.NGINX_HOST}:${process.env.HTTP_PORT}/live/${streamKey}/index.m3u8`
+    });
+
     res.status(201).json({
-     success: true,
-     data: {
-       streamId: stream.id,
-       streamKey,
-       rtmpUrl: `rtmp://your-server/live/${streamKey}`,
-       playbackUrl: `http://your-server/live/${streamKey}/index.m3u8`
-     }
-   });
- } catch (error) {
-   res.status(500).json({ success: false, error: error.message });
- }
-;
-exports.joinStream = async (req, res) => {
- try {
-   const { streamId, displayName, ipAddress } = req.body;
+      success: true,
+      data: stream
+    });
+  } catch (error) {
+    console.error('Create stream error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
 
-   const participant = await streamService.addParticipant({
-     stream_id: streamId,
-     display_name: displayName,
-     ip_address: ipAddress,
-     role: 'viewer'
-   });
-    res.status(200).json({
-     success: true,
-     data: {
-       participantId: participant.id,
-       streamId,
-       displayName
-     }
-   });
- } catch (error) {
-   res.status(500).json({ success: false, error: error.message });
- }
-;
+exports.getStream = async (req, res) => {
+  try {
+    const { streamKey } = req.params;
+    const stream = await streamService.getStreamByKey(streamKey);
+
+    if (!stream) {
+      return res.status(404).json({
+        success: false,
+        error: 'Stream not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: stream
+    });
+  } catch (error) {
+    console.error('Get stream error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};

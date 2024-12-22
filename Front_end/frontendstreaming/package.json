@@ -17,6 +17,7 @@
     "@tamagui/config": "^1.120.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "hls.js": "^1.6.0-beta.2.0.canary.10851",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

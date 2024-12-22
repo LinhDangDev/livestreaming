@@ -1,18 +1,30 @@
-import background from '@/assets/background.svg'; // Import the background image
+import { useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 
 export default function VideoFeed() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const streamInfo = JSON.parse(localStorage.getItem('streamInfo') || '{}');
+    const { streamKey } = streamInfo;
+
+    if (streamKey && videoRef.current) {
+      const hls = new Hls();
+      const playbackUrl = `http://localhost:8000/live/${streamKey}/index.m3u8`;
+
+      hls.loadSource(playbackUrl);
+      hls.attachMedia(videoRef.current);
+    }
+  }, []);
+
   return (
     <div className="relative w-full h-full">
-      <img
-        src={background} // Use the imported image
-        alt="Video feed"
+      <video
+        ref={videoRef}
         className="w-full h-full object-cover"
+        controls
+        autoPlay
       />
-      <div className="absolute bottom-4 left-4 text-white/80 text-sm flex items-center gap-2">
-        <span>14:06</span>
-        <span className="text-gray-400">|</span>
-        <span>cxa-mmst-moz</span>
-      </div>
     </div>
   );
 }

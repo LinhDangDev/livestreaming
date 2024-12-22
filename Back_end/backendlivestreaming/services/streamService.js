@@ -1,32 +1,43 @@
-const ffmpeg = require('fluent-ffmpeg');
-// ...
+const Stream = require('../entity/Stream');
+const mediaService = require('./mediaService');
 
-async function createStream(req, res) {
-    // ... (Logic tạo stream, generate stream key)
-    // ... (Chạy FFmpeg command)
-        ffmpeg()
-          .input(`rtmp://localhost:1935/live/${streamKey}`) // Đầu vào RTMP
-          .output(`whpp://localhost:8000/live/${streamKey}`)  //WHIP đến Node Media Server
-          .complexFilter(complexFilters)
-          .on('start', function(commandLine) {
-            console.log('Spawned Ffmpeg with command: ' + commandLine);
-          })
-          .on('error', function(err) {
-            console.log('An error occurred: ' + err.message);
-          })
-          .on('end', function() {
-            console.log('Finished processing');
-          })
-          .run();
+class StreamService {
+  async createStream(streamData) {
+    try {
+      const stream = await Stream.create(streamData);
+      return stream;
+    } catch (error) {
+      throw error;
+    }
+  }
 
-    // ... (Trả về stream key)
+  async getStreamByKey(streamKey) {
+    try {
+      const stream = await Stream.findOne({
+        where: { streamKey }
+      });
+      return stream;
+    } catch (error) {
+      throw error;
+    }
+  }
 
+  async updateStreamStatus(streamKey, status) {
+    try {
+      const stream = await Stream.findOne({
+        where: { streamKey }
+      });
+
+      if (stream) {
+        stream.status = status;
+        await stream.save();
+      }
+
+      return stream;
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
-// ... (Các hàm khác)
-
-
-module.exports = {
-    createStream,
-    // ...
-};
+module.exports = new StreamService();
