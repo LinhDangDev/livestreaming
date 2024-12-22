@@ -1,0 +1,116 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+out/
+
+# Media files
+media/
+uploads/
+/var/www/html/hls/
+*.mp4
+*.ts
+*.m3u8
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.swn
+*.bak
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+ode_modules/
+pm-debug.log
+arn-debug.log
+arn-error.log
+# Environment variables
+env
+env.local
+env.*.local
+# Build output
+ist/
+uild/
+ut/
+# Media files
+edia/
+ploads/
+var/www/html/hls/
+.mp4
+.ts
+.m3u8
+# Logs
+ogs/
+.log
+pm-debug.log*
+arn-debug.log*
+arn-error.log*
+# Runtime data
+ids
+.pid
+.seed
+.pid.lock
+# IDE and editor files
+idea/
+vscode/
+.swp
+.swo
+.swn
+.bak
+.sublime-workspace
+.sublime-project
+# OS generated files
+DS_Store
+DS_Store?
+_*
+Spotlight-V100
+Trashes
+hthumbs.db
+humbs.db
+# Testing
+overage/
+nyc_output/
+# Temporary files
+mp/
+emp/

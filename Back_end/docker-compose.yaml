@@ -1,0 +1,43 @@
+services:
+  nginx:
+    image: nginx-rtmp
+    container_name: ${NGINX_HOST}
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${HTTP_PORT}:80"
+      - "${RTMP_PORT}:1935"
+    environment:
+      - RTMP_PORT=${RTMP_PORT}
+      - HTTP_PORT=${HTTP_PORT}
+      - NGINX_HOST=${NGINX_HOST}
+      - RTMP_HLS_PATH=${RTMP_HLS_PATH}
+      - RTMP_APP_NAME=${RTMP_APP_NAME}
+    volumes:
+      - ${RTMP_HLS_PATH}:${RTMP_HLS_PATH}
+    healthcheck:
+      test: ["CMD", "/usr/local/nginx/sbin/nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  ffmpeg:
+    image: ffmpeg
+    container_name: ${FFMPEG_HOST}
+    build:
+      context: ./ffmpeg
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - NGINX_HOST=${NGINX_HOST}
+      - RTMP_PORT=${RTMP_PORT}
+      - RTMP_HLS_PATH=${RTMP_HLS_PATH}
+      - RTMP_APP_NAME=${RTMP_APP_NAME}
+    volumes:
+      - ${RTMP_HLS_PATH}:${RTMP_HLS_PATH}
+    depends_on:
+      nginx:
+        condition: service_healthy

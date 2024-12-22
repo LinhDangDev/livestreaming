@@ -1,9 +1,11 @@
 import './App.css'
-import VideoCallScreen from './components/screen/VideoCallScreen.tsx'
+import CreateStream from './components/screen/CreateRoomLive/createStream.tsx'
+// import VideoCallScreen from './components/screen/LiveStream/VideoCallScreen.tsx'
 
 function App() {
   return (
-    <VideoCallScreen />
+    // <VideoCallScreen />
+    <CreateStream />
   )
 }
 

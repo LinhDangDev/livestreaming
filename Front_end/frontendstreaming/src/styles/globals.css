@@ -1,0 +1,12 @@
+@keyframes flash {
+  0%, 100% {
+    border-color: transparent;
+  }
+  50% {
+    border-color: #34D399; /* Tailwind green-500 */
+  }
+}
+
+.animate-flash {
+  animation: flash 1s infinite;
+}
