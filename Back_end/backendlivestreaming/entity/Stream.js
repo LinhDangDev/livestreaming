@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/config');
+const sequelize = require('../config/database');
 
 const Stream = sequelize.define('Stream', {
   id: {
@@ -7,39 +7,36 @@ const Stream = sequelize.define('Stream', {
     primaryKey: true,
     autoIncrement: true
   },
-  stream_key: {  // Đổi từ streamKey thành stream_key
+  title: {
     type: DataTypes.STRING,
+    allowNull: false
+  },
+  stream_key: {
+    type: DataTypes.STRING(255),
     allowNull: false,
     unique: true
   },
   streamer_name: {
     type: DataTypes.STRING,
-    allowNull: true
-  },
-  start_time: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
+    allowNull: false
   },
   status: {
     type: DataTypes.ENUM('active', 'inactive'),
     defaultValue: 'inactive'
   },
-  has_recording: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
-  },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false
+  created_at: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'streams',  // Chỉ định tên bảng
-  timestamps: false      // Tắt timestamps vì không có created_at và updated_at
+  tableName: 'streams',
+  timestamps: false,
+  indexes: [
+    {
+      unique: true,
+      fields: ['stream_key']
+    }
+  ]
 });
-
-// Sync model với database
-sequelize.sync()
-    .then(() => console.log('Stream model synced'))
-    .catch(err => console.error('Error syncing Stream model:', err));
 
 module.exports = Stream;

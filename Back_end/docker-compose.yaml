@@ -1,43 +1,55 @@
 services:
-  nginx:
-    image: nginx-rtmp
-    container_name: ${NGINX_HOST}
-    build:
-      context: ./nginx
-      dockerfile: Dockerfile
-    env_file:
-      - .env
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_db
     ports:
-      - "${HTTP_PORT}:80"
-      - "${RTMP_PORT}:1935"
+      - "3307:3306"
     environment:
-      - RTMP_PORT=${RTMP_PORT}
-      - HTTP_PORT=${HTTP_PORT}
-      - NGINX_HOST=${NGINX_HOST}
-      - RTMP_HLS_PATH=${RTMP_HLS_PATH}
-      - RTMP_APP_NAME=${RTMP_APP_NAME}
-    volumes:
-      - ${RTMP_HLS_PATH}:${RTMP_HLS_PATH}
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: streaming_db
     healthcheck:
-      test: ["CMD", "/usr/local/nginx/sbin/nginx", "-t"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
-      retries: 3
-  ffmpeg:
-    image: ffmpeg
-    container_name: ${FFMPEG_HOST}
-    build:
-      context: ./ffmpeg
-      dockerfile: Dockerfile
-    env_file:
-      - .env
-    environment:
-      - NGINX_HOST=${NGINX_HOST}
-      - RTMP_PORT=${RTMP_PORT}
-      - RTMP_HLS_PATH=${RTMP_HLS_PATH}
-      - RTMP_APP_NAME=${RTMP_APP_NAME}
-    volumes:
-      - ${RTMP_HLS_PATH}:${RTMP_HLS_PATH}
+      retries: 5
+    networks:
+      - app-network
+
+  backend:
+    build: ./backendlivestreaming
+    container_name: backend
+    network_mode: "host"
+    ports:
+      - "3000:3000"
     depends_on:
-      nginx:
+      mysql_db:
         condition: service_healthy
+    environment:
+      DB_HOST: "localhost"
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: streaming_db
+      DB_PORT: 3306
+
+  nginx:
+    image: tiangolo/nginx-rtmp
+    container_name: nginx
+    ports:
+      - "1935:1935"
+      - "8080:80"
+    networks:
+      - app-network
+
+  ffmpeg:
+    image: jrottenberg/ffmpeg
+    container_name: ffmpeg
+    depends_on:
+      - nginx
+    command: >
+      ffmpeg -i /path/to/your/video.mp4 -c copy -f flv rtmp://nginx:1935/live/stream
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

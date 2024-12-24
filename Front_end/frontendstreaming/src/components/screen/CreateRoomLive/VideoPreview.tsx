@@ -64,7 +64,7 @@ export default function VideoPreview({
   }, [isMicOn, videoRef])
 
   return (
-    <Card className={`flex-1 bg-black relative overflow-hidden rounded-lg ${isAudioDetected ? 'border-4 border-green-500 animate-flash' : ''}`}>
+    <Card className={`flex-1 bg-black relative overflow-hidden rounded-lg ${isAudioDetected ? 'border-4 border-red-500 animate-flash' : ''}`}>
       {!isCameraOn && (
         <div className="absolute inset-0 flex items-center justify-center text-white">
           Máy ảnh đang tắt

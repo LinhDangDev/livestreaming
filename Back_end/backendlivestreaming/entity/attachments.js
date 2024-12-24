@@ -1,39 +1,35 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const Participant = sequelize.define('Participant', {
+const Attachment = sequelize.define('Attachment', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    stream_id: {
+    chat_id: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    ip_address: {
+    file_url: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    display_name: {
+    file_type: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    role: {
-        type: DataTypes.ENUM('streamer', 'viewer'),
-        allowNull: false
-    },
-    status: {
-        type: DataTypes.ENUM('active', 'banned'),
-        defaultValue: 'active'
+    upload_time: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     },
     created_at: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'participants',
+    tableName: 'attachments',
     timestamps: false
 });
 
-module.exports = Participant;
+module.exports = Attachment;
