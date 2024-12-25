@@ -124,10 +124,12 @@ router.get('/:streamKey', async (req, res) => {
             include: [
                 {
                     model: Participant,
-                    attributes: ['display_name']
+                    as: 'Sender',
+                    attributes: ['id', 'display_name']
                 },
                 {
                     model: Attachment,
+                    as: 'Attachment',
                     attributes: ['file_url', 'file_type']
                 }
             ],
@@ -142,7 +144,8 @@ router.get('/:streamKey', async (req, res) => {
                 message: chat.message,
                 sent_time: chat.sent_time,
                 sender: {
-                    display_name: chat.Participant.display_name
+                    id: chat.Sender ? chat.Sender.id : null,
+                    display_name: chat.Sender ? chat.Sender.display_name : 'Unknown'
                 },
                 attachment: chat.Attachment ? {
                     url: chat.Attachment.file_url,
@@ -150,7 +153,6 @@ router.get('/:streamKey', async (req, res) => {
                 } : null
             }))
         });
-
     } catch (error) {
         console.error('Error fetching chat history:', error);
         res.status(500).json({
@@ -158,6 +160,17 @@ router.get('/:streamKey', async (req, res) => {
             error: "Internal server error"
         });
     }
+});
+
+router.get('/:streamKey/ws', (req, res) => {
+    // WebSocket connection URL
+    const wsUrl = `ws://${req.headers.host}/ws/stream/${req.params.streamKey}`;
+    res.json({
+        success: true,
+        data: {
+            ws_url: wsUrl
+        }
+    });
 });
 
 module.exports = router;

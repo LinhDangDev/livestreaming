@@ -7,11 +7,18 @@ const joinStream = require('./stream/joinStream');
 const banParticipant = require('./stream/banParticipant');
 const chatRoutes = require('./stream/chatRoutes');
 const participantRoutes = require('./stream/participants');
+const streamRoutes = require('./stream/streamRoutes');
+const health = require('./health');
 
+// Health check route
+router.use('/health', health);
+
+// Stream routes
 router.use('/streams', createStream);
 router.use('/streams', endStream);
 router.use('/streams', joinStream);
 router.use('/streams', banParticipant);
+router.use('/streams', streamRoutes);
 router.use('/streams/chat', chatRoutes);
 router.use('/streams/participants', participantRoutes);
 

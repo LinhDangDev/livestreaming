@@ -134,6 +134,126 @@ const streamJoinTests = {
     ]
 };
 
+// 1. Kick Tests (Ban tạm thời)
+const kickTests = {
+    name: "Kick Tests",
+    tests: [
+        {
+            name: "Kick viewer temporarily",
+            request: {
+                method: "POST",
+                endpoint: "/streams/kick/{{stream_key}}",
+                body: {
+                    participant_id: "{{viewer_id}}",
+                    duration: 300, // 5 minutes
+                    reason: "Test kick"
+                }
+            },
+            test: function(response) {
+                assertResponse(response);
+                assert(response.data.banned_participant);
+                assert.strictEqual(response.data.banned_participant.id, environment.variables.viewer_id);
+                assert.strictEqual(response.data.duration, "300 seconds");
+                assert.strictEqual(response.data.reason, "Test kick");
+                assert(response.data.ban_end_time);
+            }
+        },
+        {
+            name: "Try to join while kicked",
+            request: {
+                method: "POST",
+                endpoint: "/streams/viewer/join/{{stream_key}}",
+                body: {
+                    display_name: "Test Viewer"
+                }
+            },
+            test: function(response) {
+                assert.strictEqual(response.success, false);
+                assert.strictEqual(response.status, 403);
+                assert(response.error.includes("You are banned until"));
+            }
+        }
+    ]
+};
+
+// 2. Ban Tests (Ban vĩnh viễn)
+const banTests = {
+    name: "Ban Tests",
+    tests: [
+        {
+            name: "Ban viewer permanently",
+            request: {
+                method: "POST",
+                endpoint: "/streams/ban/{{stream_key}}",
+                body: {
+                    participant_id: "{{viewer_id}}",
+                    reason: "Test permanent ban"
+                }
+            },
+            test: function(response) {
+                assertResponse(response);
+                assert(response.data.banned_participant);
+                assert.strictEqual(response.data.banned_participant.id, environment.variables.viewer_id);
+                assert.strictEqual(response.data.duration, "permanent");
+                assert.strictEqual(response.data.reason, "Test permanent ban");
+                assert.strictEqual(response.data.ban_end_time, null);
+            }
+        },
+        {
+            name: "Try to join while banned",
+            request: {
+                method: "POST",
+                endpoint: "/streams/viewer/join/{{stream_key}}",
+                body: {
+                    display_name: "Test Viewer"
+                }
+            },
+            test: function(response) {
+                assert.strictEqual(response.success, false);
+                assert.strictEqual(response.status, 403);
+                assert.strictEqual(response.error, "You are permanently banned from this stream");
+            }
+        }
+    ]
+};
+
+// 3. Unban Tests
+const unbanTests = {
+    name: "Unban Tests",
+    tests: [
+        {
+            name: "Unban viewer",
+            request: {
+                method: "POST",
+                endpoint: "/streams/unban/{{stream_key}}",
+                body: {
+                    participant_id: "{{viewer_id}}"
+                }
+            },
+            test: function(response) {
+                assertResponse(response);
+                assert.strictEqual(response.success, true);
+                assert.strictEqual(response.message, "Participant unbanned successfully");
+            }
+        },
+        {
+            name: "Join after unban",
+            request: {
+                method: "POST",
+                endpoint: "/streams/viewer/join/{{stream_key}}",
+                body: {
+                    display_name: "Test Viewer"
+                }
+            },
+            test: function(response) {
+                assertResponse(response);
+                assert.strictEqual(response.success, true);
+                assert.strictEqual(response.data.participant.role, "viewer");
+            }
+        }
+    ]
+};
+
 // 3. Chat Tests
 const chatTests = {
     name: "Chat Tests",
@@ -162,45 +282,6 @@ const chatTests = {
             test: function(response) {
                 assertResponse(response);
                 assert(Array.isArray(response.data));
-            }
-        }
-    ]
-};
-
-// 4. Ban/Kick Tests
-const banTests = {
-    name: "Ban/Kick Tests",
-    tests: [
-        {
-            name: "Streamer kicks viewer",
-            request: {
-                method: "POST",
-                endpoint: "/streams/kick/{{stream_key}}",
-                body: {
-                    participant_id: "{{viewer_id}}",
-                    reason: "Test kick"
-                }
-            },
-            test: function(response) {
-                assertResponse(response);
-                assert(response.data.banned_participant);
-                assert.strictEqual(response.data.banned_participant.id, parseInt(environment.variables.viewer_id));
-            }
-        },
-        {
-            name: "Temporary ban",
-            request: {
-                method: "POST",
-                endpoint: "/streams/kick/{{stream_key}}",
-                body: {
-                    participant_id: "{{viewer_id}}",
-                    duration: 30,
-                    reason: "Test temporary ban"
-                }
-            },
-            test: function(response) {
-                assertResponse(response);
-                assert(response.data.ban_end_time);
             }
         }
     ]
@@ -311,8 +392,10 @@ async function runAllTests() {
     const allTestSuites = [
         streamCreationTests,
         streamJoinTests,
-        chatTests,
+        kickTests,
         banTests,
+        unbanTests,
+        chatTests,
         endStreamTests
     ];
 

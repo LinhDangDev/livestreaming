@@ -3,13 +3,13 @@ const router = express.Router();
 const Stream = require('../../entity/Stream');
 const Participant = require('../../entity/Participant');
 const BannedParticipant = require('../../entity/BannedParticipants');
-const { Op } = require('sequelize');
 
 // API ban/kick participant
 router.post('/kick/:streamKey', async (req, res) => {
     try {
         const { participant_id, duration, reason } = req.body;
 
+        // Kiểm tra participant_id
         if (!participant_id) {
             return res.status(400).json({
                 success: false,
@@ -17,11 +17,7 @@ router.post('/kick/:streamKey', async (req, res) => {
             });
         }
 
-        const ip_address = req.headers['x-forwarded-for'] ||
-                          req.connection.remoteAddress ||
-                          req.socket.remoteAddress ||
-                          req.ip;
-
+        // Tìm stream
         const stream = await Stream.findOne({
             where: { stream_key: req.params.streamKey }
         });
@@ -33,35 +29,12 @@ router.post('/kick/:streamKey', async (req, res) => {
             });
         }
 
-        // Kiểm tra streamer
-        const streamer = await Participant.findOne({
-            where: {
-                stream_id: stream.id,
-                ip_address: ip_address,
-                role: 'streamer'
-            }
-        });
-
-        if (!streamer) {
-            return res.status(403).json({
-                success: false,
-                error: "Only streamer can ban participants"
-            });
-        }
-
         // Tìm participant cần ban
         const participantToBan = await Participant.findOne({
             where: {
-                id: parseInt(participant_id), // Convert to integer
+                id: participant_id,
                 stream_id: stream.id
-            },
-            include: [{
-                model: BannedParticipant,
-                required: false,
-                where: {
-                    stream_id: stream.id
-                }
-            }]
+            }
         });
 
         if (!participantToBan) {
@@ -71,32 +44,16 @@ router.post('/kick/:streamKey', async (req, res) => {
             });
         }
 
-        if (participantToBan.role === 'streamer') {
-            return res.status(403).json({
-                success: false,
-                error: "Cannot ban the streamer"
-            });
-        }
-
-        // Kiểm tra xem đã bị ban chưa
-        if (participantToBan.BannedParticipant) {
-            return res.status(400).json({
-                success: false,
-                error: "Participant is already banned"
-            });
-        }
-
         // Tạo ban record
         const banEndTime = duration ? new Date(Date.now() + duration * 1000) : null;
 
         const bannedRecord = await BannedParticipant.create({
             stream_id: stream.id,
-            participant_id: parseInt(participant_id),
+            participant_id: participantToBan.id,
             ip_address: participantToBan.ip_address,
             reason: reason || 'No reason provided',
             ban_duration: duration || null,
             banned_at: new Date(),
-            banned_by: streamer.id,
             ban_end_time: banEndTime
         });
 
@@ -206,6 +163,74 @@ router.post('/unban/:streamKey', async (req, res) => {
 
     } catch (error) {
         console.error('Error unbanning participant:', error);
+        res.status(500).json({
+            success: false,
+            error: "Internal server error",
+            details: error.message
+        });
+    }
+});
+
+// API ban participant
+router.post('/ban/:streamKey', async (req, res) => {
+    try {
+        const { participant_id, reason } = req.body;
+
+        // Tương tự như kick nhưng không có duration
+        const stream = await Stream.findOne({
+            where: { stream_key: req.params.streamKey }
+        });
+
+        if (!stream) {
+            return res.status(404).json({
+                success: false,
+                error: "Stream not found"
+            });
+        }
+
+        const participantToBan = await Participant.findOne({
+            where: {
+                id: participant_id,
+                stream_id: stream.id
+            }
+        });
+
+        if (!participantToBan) {
+            return res.status(404).json({
+                success: false,
+                error: "Participant not found"
+            });
+        }
+
+        const bannedRecord = await BannedParticipant.create({
+            stream_id: stream.id,
+            participant_id: participantToBan.id,
+            ip_address: participantToBan.ip_address,
+            reason: reason || 'No reason provided',
+            ban_duration: null,
+            banned_at: new Date(),
+            ban_end_time: null
+        });
+
+        await participantToBan.update({
+            status: 'banned'
+        });
+
+        res.json({
+            success: true,
+            data: {
+                banned_participant: {
+                    id: participantToBan.id,
+                    display_name: participantToBan.display_name
+                },
+                duration: 'permanent',
+                reason: reason || 'No reason provided',
+                ban_end_time: null
+            }
+        });
+
+    } catch (error) {
+        console.error('Error banning participant:', error);
         res.status(500).json({
             success: false,
             error: "Internal server error",

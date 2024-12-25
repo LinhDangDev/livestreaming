@@ -1,50 +1,52 @@
 const express = require('express');
+const http = require('http');
+const WebSocketService = require('./services/websocketService');
 const cors = require('cors');
-const routes = require('./routes');
-const sequelize = require('./config/database');
-const chatService = require('./services/chatService');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+function createServer(port = 3000) {
+    // Create express app
+    const app = express();
 
-app.use(cors());
-app.use(express.json());
-app.use('/api', routes);
+    // Create HTTP server
+    const server = http.createServer(app);
 
-// Kiểm tra port đã được sử dụng chưa
-const checkPort = (port) => {
-    return new Promise((resolve, reject) => {
-        const server = app.listen(port)
-            .on('error', (err) => {
-                if (err.code === 'EADDRINUSE') {
-                    server.close();
-                    resolve(false);
-                } else {
-                    reject(err);
-                }
-            })
-            .on('listening', () => {
-                server.close();
-                resolve(true);
-            });
-    });
-};
+    // Middleware
+    app.use(cors());
+    app.use(express.json());
+    app.use(express.urlencoded({ extended: true }));
 
-// Tìm port khả dụng và khởi động server
-async function startServer() {
-    try {
-        // Thay đổi force: true thành alter: true để không xóa dữ liệu cũ
-        await sequelize.sync({ alter: true });
-        console.log('Database synchronized');
+    // Routes
+    app.use('/api/health', require('./routes/health'));
+    app.use('/api', require('./routes/index'));
 
-        const port = process.env.PORT || 3000;
-        app.listen(port, () => {
-            console.log(`Server is running on port ${port}`);
+    // Khởi tạo WebSocket service
+    const wsService = new WebSocketService(server);
+    app.set('wsService', wsService);
+
+    // Error handling middleware
+    app.use((err, req, res, next) => {
+        console.error(err.stack);
+        res.status(500).json({
+            success: false,
+            error: "Internal server error",
+            details: err.message
         });
-    } catch (error) {
-        console.error('Error starting server:', error);
-        process.exit(1);
+    });
+
+    return { app, server };
+}
+
+// Chỉ start server nếu chạy trực tiếp file này và không phải môi trường test
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+    const { server } = createServer();
+    const PORT = process.env.PORT || 3000;
+
+    // Kiểm tra xem server đã listen chưa
+    if (!server.listening) {
+        server.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
     }
 }
 
-startServer();
+module.exports = createServer;

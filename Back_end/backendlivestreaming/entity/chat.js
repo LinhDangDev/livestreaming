@@ -1,7 +1,11 @@
-const { DataTypes } = require('sequelize');
+const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
+const Participant = require('./Participant');
+const Attachment = require('./attachments');
 
-const Chat = sequelize.define('Chat', {
+class Chat extends Model {}
+
+Chat.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -17,7 +21,7 @@ const Chat = sequelize.define('Chat', {
     },
     message: {
         type: DataTypes.TEXT,
-        allowNull: false
+        allowNull: true
     },
     sent_time: {
         type: DataTypes.DATE,
@@ -28,8 +32,21 @@ const Chat = sequelize.define('Chat', {
         defaultValue: false
     }
 }, {
+    sequelize,
+    modelName: 'Chat',
     tableName: 'chats',
     timestamps: false
+});
+
+// Define associations
+Chat.belongsTo(Participant, {
+    foreignKey: 'participant_id',
+    as: 'Sender'
+});
+
+Chat.hasOne(Attachment, {
+    foreignKey: 'chat_id',
+    as: 'Attachment'
 });
 
 module.exports = Chat;

@@ -23,7 +23,8 @@
     "sequelize": "^6.37.5",
     "socket.io": "^4.7.5",
     "sqlite3": "^5.1.7",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "form-data": "^4.0.1",
