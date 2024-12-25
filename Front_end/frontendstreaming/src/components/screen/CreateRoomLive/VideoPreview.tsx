@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Mic, MicOff, Video, VideoOff, PresentationIcon as PresentationScreen } from 'lucide-react'
+import { Mic, MicOff, Video, VideoOff, PresentationIcon as PresentationScreen, Record, StopCircle } from 'lucide-react'
 import { useEffect, useState, useRef } from 'react'
 
 interface VideoPreviewProps {
@@ -10,6 +10,8 @@ interface VideoPreviewProps {
   toggleMic: () => void
   toggleCamera: () => void
   handleCreateStream: () => void
+  isRecording: boolean
+  toggleRecording: () => void
 }
 
 export default function VideoPreview({
@@ -19,6 +21,8 @@ export default function VideoPreview({
   toggleMic,
   toggleCamera,
   handleCreateStream,
+  isRecording,
+  toggleRecording
 }: VideoPreviewProps) {
   const [isAudioDetected, setIsAudioDetected] = useState(false)
   const audioRef = useRef<AudioContext | null>(null)
@@ -101,6 +105,17 @@ export default function VideoPreview({
           onClick={handleCreateStream}
         >
           <PresentationScreen className="h-5 w-5" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className={`rounded-full ${isRecording ? 'bg-red-500' : 'bg-gray-800'} hover:bg-gray-700 text-white`}
+          onClick={toggleRecording}
+        >
+          {isRecording ?
+            <StopCircle className="h-5 w-5" /> :
+            <Record className="h-5 w-5" />
+          }
         </Button>
       </div>
     </Card>

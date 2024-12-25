@@ -9,13 +9,8 @@ router.post('/kick/:streamKey', async (req, res) => {
     try {
         const { participant_id, duration, reason } = req.body;
 
-        // Kiểm tra participant_id
-        if (!participant_id) {
-            return res.status(400).json({
-                success: false,
-                error: "Participant ID is required"
-            });
-        }
+        // Parse participant_id to number if it's a string
+        const parsedParticipantId = parseInt(participant_id);
 
         // Tìm stream
         const stream = await Stream.findOne({
@@ -29,10 +24,25 @@ router.post('/kick/:streamKey', async (req, res) => {
             });
         }
 
+        // Tìm streamer (người thực hiện ban)
+        const streamer = await Participant.findOne({
+            where: {
+                stream_id: stream.id,
+                role: 'streamer'
+            }
+        });
+
+        if (!streamer) {
+            return res.status(403).json({
+                success: false,
+                error: "Only streamer can ban participants"
+            });
+        }
+
         // Tìm participant cần ban
         const participantToBan = await Participant.findOne({
             where: {
-                id: participant_id,
+                id: parsedParticipantId,
                 stream_id: stream.id
             }
         });
@@ -44,12 +54,28 @@ router.post('/kick/:streamKey', async (req, res) => {
             });
         }
 
+        // Kiểm tra đã bị ban chưa
+        const existingBan = await BannedParticipant.findOne({
+            where: {
+                stream_id: stream.id,
+                participant_id: parsedParticipantId
+            }
+        });
+
+        if (existingBan) {
+            return res.status(400).json({
+                success: false,
+                error: "Participant is already banned"
+            });
+        }
+
         // Tạo ban record
         const banEndTime = duration ? new Date(Date.now() + duration * 1000) : null;
 
         const bannedRecord = await BannedParticipant.create({
             stream_id: stream.id,
-            participant_id: participantToBan.id,
+            participant_id: parsedParticipantId,
+            banned_by: streamer.id,
             ip_address: participantToBan.ip_address,
             reason: reason || 'No reason provided',
             ban_duration: duration || null,
@@ -128,22 +154,13 @@ router.post('/unban/:streamKey', async (req, res) => {
             });
         }
 
-        const bannedParticipant = await BannedParticipant.findOne({
+        // Xóa tất cả ban records của participant
+        await BannedParticipant.destroy({
             where: {
                 stream_id: stream.id,
                 participant_id: participant_id
             }
         });
-
-        if (!bannedParticipant) {
-            return res.status(404).json({
-                success: false,
-                error: "Banned participant not found"
-            });
-        }
-
-        // Xóa ban record
-        await bannedParticipant.destroy();
 
         // Cập nhật trạng thái participant
         await Participant.update(
@@ -158,7 +175,14 @@ router.post('/unban/:streamKey', async (req, res) => {
 
         res.json({
             success: true,
-            message: "Participant unbanned successfully"
+            message: "Participant unbanned successfully",
+            data: {
+                participant: {
+                    id: participant_id,
+                    status: 'active'
+                }
+            },
+            status: 200
         });
 
     } catch (error) {
@@ -176,7 +200,6 @@ router.post('/ban/:streamKey', async (req, res) => {
     try {
         const { participant_id, reason } = req.body;
 
-        // Tương tự như kick nhưng không có duration
         const stream = await Stream.findOne({
             where: { stream_key: req.params.streamKey }
         });
@@ -185,6 +208,21 @@ router.post('/ban/:streamKey', async (req, res) => {
             return res.status(404).json({
                 success: false,
                 error: "Stream not found"
+            });
+        }
+
+        // Tìm streamer
+        const streamer = await Participant.findOne({
+            where: {
+                stream_id: stream.id,
+                role: 'streamer'
+            }
+        });
+
+        if (!streamer) {
+            return res.status(403).json({
+                success: false,
+                error: "Only streamer can ban participants"
             });
         }
 
@@ -205,6 +243,7 @@ router.post('/ban/:streamKey', async (req, res) => {
         const bannedRecord = await BannedParticipant.create({
             stream_id: stream.id,
             participant_id: participantToBan.id,
+            banned_by: streamer.id,
             ip_address: participantToBan.ip_address,
             reason: reason || 'No reason provided',
             ban_duration: null,

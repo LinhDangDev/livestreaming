@@ -11,6 +11,8 @@ export default function CreateStream() {
   const [isCameraOn, setIsCameraOn] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const navigate = useNavigate()
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingId, setRecordingId] = useState<string | null>(null)
 
   const toggleMic = async () => {
     if (!isMicOn) {
@@ -78,6 +80,26 @@ export default function CreateStream() {
     }
   };
 
+  const toggleRecording = async () => {
+    try {
+      if (!isRecording) {
+        const response = await axios.post(
+          `http://localhost:3000/api/streams/recording/start/${streamKey}`
+        );
+        setRecordingId(response.data.data.recording_id);
+      } else if (recordingId) {
+        await axios.post(
+          `http://localhost:3000/api/streams/recording/stop/${streamKey}`
+        );
+        setRecordingId(null);
+      }
+      setIsRecording(!isRecording);
+    } catch (error) {
+      console.error('Error toggling recording:', error);
+      // Handle error (show notification etc.)
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="flex flex-col md:flex-row h-screen">
@@ -95,6 +117,8 @@ export default function CreateStream() {
               toggleMic={toggleMic}
               toggleCamera={toggleCamera}
               handleCreateStream={handleCreateStream}
+              isRecording={isRecording}
+              toggleRecording={toggleRecording}
             />
           </div>
         </div>

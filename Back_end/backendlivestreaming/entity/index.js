@@ -3,6 +3,7 @@ const Participant = require('./Participant');
 const Chat = require('./chat');
 const Attachment = require('./attachments');
 const BannedParticipant = require('./BannedParticipants');
+const StreamRecording = require('./StreamRecording');
 
 // 1. Stream - Participant
 Stream.hasMany(Participant, { foreignKey: 'stream_id' });
@@ -50,10 +51,15 @@ Participant.hasMany(BannedParticipant, {
     as: 'BannedOthers'
 });
 
+// Add Stream - StreamRecording relationship
+Stream.hasMany(StreamRecording, { foreignKey: 'stream_id' });
+StreamRecording.belongsTo(Stream, { foreignKey: 'stream_id' });
+
 module.exports = {
     Stream,
     Participant,
     Chat,
     Attachment,
-    BannedParticipant
+    BannedParticipant,
+    StreamRecording
 };

@@ -24,28 +24,34 @@ router.use('/viewer/join/:streamKey', async (req, res, next) => {
                           req.socket.remoteAddress ||
                           req.ip;
 
+        // Kiểm tra ban theo IP và thời gian
         const bannedParticipant = await BannedParticipant.findOne({
             where: {
                 stream_id: stream.id,
                 ip_address: ip_address,
-                ban_end_time: {
-                    [Op.or]: [
-                        {[Op.gt]: new Date()}, // Chưa hết hạn
-                        {[Op.eq]: null}  // Ban vĩnh viễn
-                    ]
-                }
-            }
+                [Op.or]: [
+                    { ban_end_time: { [Op.gt]: new Date() } }, // Chưa hết hạn
+                    { ban_end_time: null } // Ban vĩnh viễn
+                ]
+            },
+            order: [['banned_at', 'DESC']] // Lấy ban record mới nhất
         });
 
         if (bannedParticipant) {
-            const message = bannedParticipant.ban_end_time
-                ? `You are banned until ${bannedParticipant.ban_end_time}`
-                : "You are permanently banned from this stream";
-
-            return res.status(403).json({
-                success: false,
-                error: message
-            });
+            // Kiểm tra loại ban
+            if (bannedParticipant.ban_end_time === null) {
+                return res.status(403).json({
+                    success: false,
+                    error: "You are permanently banned from this stream",
+                    status: 403
+                });
+            } else {
+                return res.status(403).json({
+                    success: false,
+                    error: `You are banned until ${bannedParticipant.ban_end_time}`,
+                    status: 403
+                });
+            }
         }
 
         next();

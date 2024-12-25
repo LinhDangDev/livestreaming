@@ -9,6 +9,7 @@ const chatRoutes = require('./stream/chatRoutes');
 const participantRoutes = require('./stream/participants');
 const streamRoutes = require('./stream/streamRoutes');
 const health = require('./health');
+const streamRecordings = require('./stream/streamRecordings');
 
 // Health check route
 router.use('/health', health);
@@ -21,5 +22,6 @@ router.use('/streams', banParticipant);
 router.use('/streams', streamRoutes);
 router.use('/streams/chat', chatRoutes);
 router.use('/streams/participants', participantRoutes);
+router.use('/streams', streamRecordings);
 
 module.exports = router;
