@@ -28,7 +28,9 @@ RUN ./configure \
 # Create necessary directories
 RUN mkdir -p /usr/local/nginx/conf/conf.d && \
   mkdir -p /usr/local/nginx/html/hls && \
-  chmod -R 777 /usr/local/nginx/html/hls
+  chmod -R 777 /usr/local/nginx/html/hls && \
+  mkdir -p /usr/local/nginx/html/live && \
+  chmod -R 777 /usr/local/nginx/html/live
 
 # Forward logs
 RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log && \

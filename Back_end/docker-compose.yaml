@@ -26,7 +26,7 @@ services:
       - "8000:80"
       - "1935:1935"
     volumes:
-      - ./nginx/hls:/usr/local/nginx/html/hls
+      - ./nginx/live:/usr/local/nginx/html/live
       - ./nginx/logs:/usr/local/nginx/logs
     depends_on:
       - backend
