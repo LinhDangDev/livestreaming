@@ -6,10 +6,22 @@ import { Shield, X, Send, Mic, Camera, MonitorUp, PictureInPicture, MessageCircl
 import { streamService } from '@/services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
+import axios from 'axios';
 
-
-
-
+// Thêm interface cho message
+interface ChatMessage {
+  id: string;
+  message: string;
+  sent_time: string;
+  sender: {
+    id: number;
+    display_name: string;
+  };
+  attachment?: {
+    url: string;
+    type: string;
+  } | null;
+}
 
 // VideoFeed Component
 function VideoFeed() {
@@ -22,48 +34,11 @@ function VideoFeed() {
     if (videoRef.current && streamKey) {
       const video = videoRef.current;
 
-      video.controls = false;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.muted = true;
-
       if (Hls.isSupported()) {
         const hls = new Hls({
           debug: true,
           enableWorker: true,
           lowLatencyMode: true,
-          manifestLoadPolicy: {
-            default: {
-              maxTimeToFirstByteMs: 10000,
-              maxLoadTimeMs: 10000,
-              timeoutRetry: {
-                maxNumRetry: 5,
-                retryDelayMs: 1000,
-                maxRetryDelayMs: 8000
-              },
-              errorRetry: {
-                maxNumRetry: 5,
-                retryDelayMs: 1000,
-                maxRetryDelayMs: 8000
-              }
-            }
-          },
-          fragLoadPolicy: {
-            default: {
-              maxTimeToFirstByteMs: 10000,
-              maxLoadTimeMs: 10000,
-              timeoutRetry: {
-                maxNumRetry: 5,
-                retryDelayMs: 1000,
-                maxRetryDelayMs: 8000
-              },
-              errorRetry: {
-                maxNumRetry: 5,
-                retryDelayMs: 1000,
-                maxRetryDelayMs: 8000
-              }
-            }
-          },
           backBufferLength: 30,
           maxBufferSize: 2 * 1000 * 1000,
           maxBufferLength: 10,
@@ -73,27 +48,9 @@ function VideoFeed() {
 
         hlsInstanceRef.current = hls;
 
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.error("Network error, attempting to recover...");
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.error("Media error, attempting to recover...");
-                hls.recoverMediaError();
-                break;
-              default:
-                console.error("Fatal error, destroying HLS instance...");
-                hls.destroy();
-                break;
-            }
-          }
-        });
-
         try {
-          const hlsUrl = `${import.meta.env.VITE_HLS_URL}/${streamKey}.m3u8`;
+
+          const hlsUrl = `${import.meta.env.VITE_HLS_URL}/live/${streamKey}.m3u8`;
           console.log('Loading HLS source:', hlsUrl);
 
           hls.loadSource(hlsUrl);
@@ -107,15 +64,35 @@ function VideoFeed() {
               })
               .catch(console.error);
           });
+
+          // Thêm error handling
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.error("Network error, attempting to recover...");
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.error("Media error, attempting to recover...");
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error("Fatal error, destroying HLS instance...");
+                  hls.destroy();
+                  break;
+              }
+            }
+          });
+
+          return () => {
+            if (hlsInstanceRef.current) {
+              hlsInstanceRef.current.destroy();
+            }
+          };
         } catch (error) {
           console.error('Error loading HLS:', error);
         }
-
-        return () => {
-          if (hlsInstanceRef.current) {
-            hlsInstanceRef.current.destroy();
-          }
-        };
       }
     }
   }, [streamKey]);
@@ -173,9 +150,49 @@ function BottomControls({ onToggleChatPanel, onEndStream }: { onToggleChatPanel:
   );
 }
 
-// ChatPanel Component
-function ChatPanel({ onClose, onSendMessage, messages }: { onClose: () => void; onSendMessage: (message: string) => void; messages: Array<{id: string; message: string; sender: string}> }) {
+// Component hiển thị từng tin nhắn
+function ChatMessageItem({ message }: { message: ChatMessage }) {
+  return (
+    <div className="flex flex-col space-y-1 mb-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-gray-700">
+          {message.sender.display_name}
+        </span>
+        <span className="text-xs text-gray-500">
+          {new Date(message.sent_time).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </span>
+      </div>
+      <p className="text-sm text-gray-600 bg-gray-100 rounded-lg p-2">
+        {message.message}
+      </p>
+    </div>
+  );
+}
+
+// Cập nhật ChatPanel component
+function ChatPanel({
+  onClose,
+  onSendMessage,
+  messages
+}: {
+  onClose: () => void;
+  onSendMessage: (message: string) => void;
+  messages: ChatMessage[]
+}) {
   const [message, setMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto scroll to bottom khi có tin nhắn mới
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,8 +211,8 @@ function ChatPanel({ onClose, onSendMessage, messages }: { onClose: () => void; 
         </button>
       </div>
 
-      <div className="p-4 space-y-4 flex-grow overflow-y-auto">
-        <div className="flex items-center gap-2">
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex items-center gap-2 mb-4">
           <Shield className="w-5 h-5 text-gray-500" />
           <div className="flex items-center gap-2">
             <span>Cho phép mọi người nhắn tin</span>
@@ -203,28 +220,31 @@ function ChatPanel({ onClose, onSendMessage, messages }: { onClose: () => void; 
           </div>
         </div>
 
-        {messages.map((msg) => (
-          <div key={msg.id} className="p-2 bg-gray-100 rounded">
-            <p className="font-semibold">{msg.sender}</p>
-            <p>{msg.message}</p>
-          </div>
-        ))}
+        <div className="space-y-4">
+          {messages.map((msg) => (
+            <ChatMessageItem key={msg.id} message={msg} />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
-      <form onSubmit={handleSendMessage} className="p-4 border-t flex items-center gap-2">
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Nhập tin nhắn..."
-          className="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <button
-          type="submit"
-          className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <Send className="w-5 h-5" />
-        </button>
+      <form onSubmit={handleSendMessage} className="p-4 border-t">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Nhập tin nhắn..."
+            className="flex-grow p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            disabled={!message.trim()}
+            className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="w-5 h-5" />
+          </button>
+        </div>
       </form>
     </Card>
   );
@@ -233,29 +253,41 @@ function ChatPanel({ onClose, onSendMessage, messages }: { onClose: () => void; 
 // Main LiveStream Component
 export default function LiveStream() {
   const [isChatPanelVisible, setIsChatPanelVisible] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const { streamKey } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
+    const loadChatHistory = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_URL}/api/streams/chat/${streamKey}`
+        );
+        if (response.data.success) {
+          setMessages(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    };
+
     if (streamKey) {
       loadChatHistory();
     }
   }, [streamKey]);
 
-  const loadChatHistory = async () => {
-    try {
-      const response = await streamService.getChatHistory(streamKey!);
-      setMessages(response.data);
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    }
-  };
-
   const handleSendMessage = async (message: string) => {
     try {
-      await streamService.sendMessage(streamKey!, message);
-      loadChatHistory();
+      // Sửa lại URL API chat
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/streams/chat/${streamKey}`,
+        { message }
+      );
+
+      if (response.data.success) {
+        // Thêm tin nhắn mới vào state
+        setMessages(prev => [...prev, response.data.data.chat]);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     }

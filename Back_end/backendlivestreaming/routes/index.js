@@ -22,7 +22,7 @@ router.use('/streams', endStream);
 router.use('/streams', joinStream);
 router.use('/streams', banParticipant);
 router.use('/streams', streamRoutes);
-router.use('/streams/chat', chatRoutes);
+router.use('/api/streams/chat', chatRoutes);
 router.use('/streams/participants', participantRoutes);
 router.use('/streams', streamRecordings);
 

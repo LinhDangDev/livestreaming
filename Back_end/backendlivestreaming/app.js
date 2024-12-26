@@ -1,11 +1,15 @@
 const express = require('express');
 const cors = require('cors');
 const routes = require('./routes'); // Import routes từ index.js
+const io = require('socket.io')(server);
 
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173', // Frontend URL
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
@@ -19,6 +23,8 @@ app.use((err, req, res, next) => {
     error: 'Có lỗi xảy ra từ server'
   });
 });
+
+app.set('io', io);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
