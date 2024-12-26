@@ -14,10 +14,23 @@ export const streamService = {
 
   // Join stream
   joinStream: async (streamKey: string, displayName: string) => {
-    const response = await axios.post(`${BASE_URL}/streams/viewer/join/${streamKey}`, {
-      display_name: displayName
-    });
-    return response.data;
+    try {
+      console.log('Joining stream:', { streamKey, displayName });
+      const response = await axios.post(`${BASE_URL}/streams/viewer/join/${streamKey}`, {
+        display_name: displayName
+      });
+      console.log('Join response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error joining stream:', error);
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.error || 'Không thể tham gia stream',
+          status: error.response?.status
+        };
+      }
+      throw error;
+    }
   },
 
   // End stream
@@ -69,9 +82,9 @@ export const streamService = {
   // Stream status check
   checkStreamStatus: async (streamKey: string) => {
     try {
-      console.log('Checking stream status:', streamKey); // Debug log
+      console.log('Checking stream status:', streamKey);
       const response = await axios.get(`${BASE_URL}/streams/status/${streamKey}`);
-      console.log('Status response:', response.data); // Debug log
+      console.log('Status response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Error checking stream status:', error);

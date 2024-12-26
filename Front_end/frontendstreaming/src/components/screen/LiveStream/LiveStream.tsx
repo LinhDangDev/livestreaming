@@ -1,149 +1,136 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Shield, X, Send, Mic, Camera, MonitorUp, PictureInPicture, MessageCircle, Users, MoreVertical, Phone } from 'lucide-react';
+import { Shield, X, Send, Mic, Camera, MonitorUp, PictureInPicture, MessageCircle, Users, MoreVertical, Phone, Volume2, Settings, Maximize2 } from 'lucide-react';
 // import ReactPlayer from 'react-player';
 import { streamService } from '@/services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
 
+
+
+
+
 // VideoFeed Component
 function VideoFeed() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { streamKey } = useParams();
-  const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const hlsInstanceRef = useRef<Hls | null>(null);
 
   useEffect(() => {
-    if (!streamKey || !videoRef.current) return;
+    if (videoRef.current && streamKey) {
+      const video = videoRef.current;
 
-    const video = videoRef.current;
-    let hls: Hls | null = null;
+      video.controls = false;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.muted = true;
 
-    const initializeStream = async () => {
-      try {
-        setIsLoading(true);
-        setError('');
-
-        const streamUrl = `http://localhost:8000/live/${streamKey}/index.m3u8`;
-
-        // Add check stream status
-        const checkStream = async () => {
-          try {
-            const response = await fetch(streamUrl);
-            if (response.ok) {
-              return true;
+      if (Hls.isSupported()) {
+        const hls = new Hls({
+          debug: true,
+          enableWorker: true,
+          lowLatencyMode: true,
+          manifestLoadPolicy: {
+            default: {
+              maxTimeToFirstByteMs: 10000,
+              maxLoadTimeMs: 10000,
+              timeoutRetry: {
+                maxNumRetry: 5,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              },
+              errorRetry: {
+                maxNumRetry: 5,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              }
             }
-          } catch (error) {
-            console.error('Error checking stream:', error);
-            console.log('Stream not ready yet');
-          }
-          return false;
-        };
-
-        // Wait for stream to be ready
-        let retries = 10;
-        while (retries > 0) {
-          if (await checkStream()) {
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          retries--;
-        }
-
-        if (retries === 0) {
-          throw new Error('Stream không khả dụng');
-        }
-
-        if (Hls.isSupported()) {
-          hls = new Hls({
-            debug: true,
-            enableWorker: true,
-            lowLatencyMode: true,
-            xhrSetup: function(xhr) {
-              xhr.withCredentials = false;
+          },
+          fragLoadPolicy: {
+            default: {
+              maxTimeToFirstByteMs: 10000,
+              maxLoadTimeMs: 10000,
+              timeoutRetry: {
+                maxNumRetry: 5,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              },
+              errorRetry: {
+                maxNumRetry: 5,
+                retryDelayMs: 1000,
+                maxRetryDelayMs: 8000
+              }
             }
-          });
+          },
+          backBufferLength: 30,
+          maxBufferSize: 2 * 1000 * 1000,
+          maxBufferLength: 10,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 10,
+        });
 
-          hls.loadSource(streamUrl);
+        hlsInstanceRef.current = hls;
+
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.error("Network error, attempting to recover...");
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.error("Media error, attempting to recover...");
+                hls.recoverMediaError();
+                break;
+              default:
+                console.error("Fatal error, destroying HLS instance...");
+                hls.destroy();
+                break;
+            }
+          }
+        });
+
+        try {
+          const hlsUrl = `${import.meta.env.VITE_HLS_URL}/${streamKey}.m3u8`;
+          console.log('Loading HLS source:', hlsUrl);
+
+          hls.loadSource(hlsUrl);
           hls.attachMedia(video);
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
-            setIsLoading(false);
-            video.play().catch(err => {
-              console.error('Playback failed:', err);
-              setError('Failed to start playback');
-            });
+            video.play()
+              .then(() => {
+                setIsPlaying(true);
+                video.muted = false;
+              })
+              .catch(console.error);
           });
-
-          hls.on(Hls.Events.ERROR, (event, data) => {
-            console.error('HLS error:', data);
-            if (data.fatal) {
-              switch (data.type) {
-                case Hls.ErrorTypes.NETWORK_ERROR:
-                  console.log('Fatal network error encountered, trying to recover...');
-                  hls?.startLoad();
-                  break;
-                case Hls.ErrorTypes.MEDIA_ERROR:
-                  console.log('Fatal media error encountered, trying to recover...');
-                  hls?.recoverMediaError();
-                  break;
-                default:
-                  hls?.destroy();
-                  setError('Stream không khả dụng');
-                  break;
-              }
-            }
-          });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = streamUrl;
-          video.addEventListener('loadedmetadata', () => {
-            setIsLoading(false);
-            video.play().catch(console.error);
-          });
-        } else {
-          setError('Trình duyệt không hỗ trợ HLS');
+        } catch (error) {
+          console.error('Error loading HLS:', error);
         }
-      } catch (err) {
-        console.error('Stream initialization error:', err);
-        setError('Không thể khởi tạo stream');
-        setIsLoading(false);
-      }
-    };
 
-    initializeStream();
-
-    return () => {
-      if (hls) {
-        hls.destroy();
+        return () => {
+          if (hlsInstanceRef.current) {
+            hlsInstanceRef.current.destroy();
+          }
+        };
       }
-      if (video) {
-        video.pause();
-        video.src = '';
-        video.load();
-      }
-    };
+    }
   }, [streamKey]);
 
   return (
     <div className="relative w-full h-full bg-black">
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      )}
-
       <video
         ref={videoRef}
-        className="w-full h-full"
-        controls
+        className="w-full h-full object-contain"
         playsInline
         muted
       />
-
-      {error && (
-        <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 text-center">
-          {error}
+      {!isPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-white">Loading stream...</div>
         </div>
       )}
     </div>
@@ -245,8 +232,8 @@ function ChatPanel({ onClose, onSendMessage, messages }: { onClose: () => void; 
 
 // Main LiveStream Component
 export default function LiveStream() {
-  const [isChatPanelVisible, setIsChatPanelVisible] = useState(true);
-  const [messages, setMessages] = useState<Array<{id: string; message: string; sender: string}>>([]);
+  const [isChatPanelVisible, setIsChatPanelVisible] = useState(false);
+  const [messages, setMessages] = useState([]);
   const { streamKey } = useParams();
   const navigate = useNavigate();
 
@@ -289,14 +276,36 @@ export default function LiveStream() {
 
   return (
     <div className="h-screen flex bg-black">
-      {/* Main content area - Thêm overflow-hidden để ngăn video phóng to quá mức */}
       <div className={`flex-1 relative flex flex-col overflow-hidden ${isChatPanelVisible ? 'mr-80' : ''}`}>
-        {/* Video container - Thêm max-h-[calc(100%-4rem)] để giữ video không vượt quá bottom controls */}
         <div className="flex-1 relative max-h-[calc(100%-4rem)]">
           <VideoFeed />
         </div>
 
-        {/* Bottom controls - Thêm relative để đảm bảo luôn ở dưới video */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <button className="p-2 text-white hover:bg-white/20 rounded-full">
+                <Volume2 className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button className="p-2 text-white hover:bg-white/20 rounded-full">
+                <Settings className="w-5 h-5" />
+              </button>
+              <button
+                className="p-2 text-white hover:bg-white/20 rounded-full"
+                onClick={toggleChatPanel}
+              >
+                <MessageCircle className="w-5 h-5" />
+              </button>
+              <button className="p-2 text-white hover:bg-white/20 rounded-full">
+                <Maximize2 className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="h-16 relative">
           <BottomControls
             onToggleChatPanel={toggleChatPanel}
@@ -305,7 +314,6 @@ export default function LiveStream() {
         </div>
       </div>
 
-      {/* Chat panel - Không thay đổi */}
       {isChatPanelVisible && (
         <div className="w-80 fixed right-0 top-0 bottom-0">
           <ChatPanel

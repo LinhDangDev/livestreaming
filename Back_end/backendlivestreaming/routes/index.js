@@ -11,6 +11,8 @@ const streamRoutes = require('./stream/streamRoutes');
 const health = require('./health');
 const streamRecordings = require('./stream/streamRecordings');
 
+// Đăng ký các route
+
 // Health check route
 router.use('/health', health);
 

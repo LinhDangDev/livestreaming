@@ -106,12 +106,11 @@ export default function JoinRoomLive() {
       } else {
         setError(joinResponse.error || 'Không thể tham gia stream');
       }
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Join stream error:', error);
       setError(
-        error instanceof Error && 'response' in error && typeof error.response === 'object' && error.response !== null && 'data' in error.response && typeof error.response.data === 'object' && error.response.data !== null && 'error' in error.response.data
-          ? String(error.response.data.error)
-          : 'Có lỗi xảy ra khi tham gia stream, vui lòng thử lại'
+        error.response?.data?.error ||
+        'Có lỗi xảy ra khi tham gia stream, vui lòng thử lại'
       );
     }
   };

@@ -2,26 +2,26 @@ const express = require('express');
 const router = express.Router();
 const Stream = require('../../entity/Stream');
 const Participant = require('../../entity/Participant');
-const BannedParticipant = require('../../entity/BannedParticipants');
-const { Op } = require('sequelize');
 
-// Kiểm tra status stream - GET /api/streams/status/:streamKey
+// GET /api/streams/status/:streamKey
 router.get('/status/:streamKey', async (req, res) => {
     try {
-        console.log('Checking stream status for key:', req.params.streamKey); // Debug log
+        console.log('Checking stream status for key:', req.params.streamKey);
+
+        // Kiểm tra stream tồn tại
         const stream = await Stream.findOne({
             where: { stream_key: req.params.streamKey }
         });
 
         if (!stream) {
-            console.log('Stream not found'); // Debug log
+            console.log('Stream not found');
             return res.status(404).json({
                 success: false,
                 error: "Stream không tồn tại"
             });
         }
 
-        console.log('Stream found:', stream.title); // Debug log
+        console.log('Stream found:', stream.title);
         return res.json({
             success: true,
             data: {
@@ -39,11 +39,11 @@ router.get('/status/:streamKey', async (req, res) => {
     }
 });
 
-// Join stream cho viewer - POST /api/streams/viewer/join/:streamKey
+// POST /api/streams/viewer/join/:streamKey
 router.post('/viewer/join/:streamKey', async (req, res) => {
     try {
-        console.log('Join request received:', req.body); // Debug log
         const { display_name } = req.body;
+        console.log('Join request:', { streamKey: req.params.streamKey, displayName: display_name });
 
         if (!display_name) {
             return res.status(400).json({
@@ -63,7 +63,6 @@ router.post('/viewer/join/:streamKey', async (req, res) => {
             });
         }
 
-        // Tạo participant mới
         const participant = await Participant.create({
             stream_id: stream.id,
             display_name: display_name,
@@ -71,7 +70,7 @@ router.post('/viewer/join/:streamKey', async (req, res) => {
             ip_address: req.ip
         });
 
-        console.log('Participant created:', participant.id); // Debug log
+        console.log('Participant created:', participant.id);
         return res.json({
             success: true,
             data: {
