@@ -9,6 +9,7 @@ function App() {
       <Route path="/" element={<CreateStream />} />
       <Route path="/live/:streamKey?" element={<LiveStream />} />
       <Route path="/join/:streamKey?" element={<JoinRoomLive />} />
+      <Route path="/join" element={<JoinRoomLive />} />
     </Routes>
   );
 }

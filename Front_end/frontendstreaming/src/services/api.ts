@@ -64,5 +64,24 @@ export const streamService = {
       participant_id: participantId
     });
     return response.data;
+  },
+
+  // Stream status check
+  checkStreamStatus: async (streamKey: string) => {
+    try {
+      console.log('Checking stream status:', streamKey); // Debug log
+      const response = await axios.get(`${BASE_URL}/streams/status/${streamKey}`);
+      console.log('Status response:', response.data); // Debug log
+      return response.data;
+    } catch (error) {
+      console.error('Error checking stream status:', error);
+      if (axios.isAxiosError(error)) {
+        throw {
+          message: error.response?.data?.error || 'Không thể kiểm tra trạng thái stream',
+          status: error.response?.status
+        };
+      }
+      throw error;
+    }
   }
 };

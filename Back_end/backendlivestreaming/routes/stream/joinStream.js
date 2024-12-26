@@ -5,78 +5,50 @@ const Participant = require('../../entity/Participant');
 const BannedParticipant = require('../../entity/BannedParticipants');
 const { Op } = require('sequelize');
 
-// API cho streamer rejoin stream
-router.post('/streamer/join/:streamKey', async (req, res) => {
+// Kiểm tra status stream - GET /api/streams/status/:streamKey
+router.get('/status/:streamKey', async (req, res) => {
     try {
-        const ip_address = req.headers['x-forwarded-for'] ||
-                            req.connection.remoteAddress ||
-                            req.socket.remoteAddress ||
-                            req.ip;
-
+        console.log('Checking stream status for key:', req.params.streamKey); // Debug log
         const stream = await Stream.findOne({
             where: { stream_key: req.params.streamKey }
         });
 
         if (!stream) {
+            console.log('Stream not found'); // Debug log
             return res.status(404).json({
                 success: false,
-                error: "Stream not found"
+                error: "Stream không tồn tại"
             });
         }
 
-        const streamer = await Participant.findOne({
-            where: {
-                stream_id: stream.id,
-                role: 'streamer'
-            }
-        });
-
-        if (!streamer) {
-            return res.status(403).json({
-                success: false,
-                error: "You are not the streamer of this stream"
-            });
-        }
-
-        res.json({
+        console.log('Stream found:', stream.title); // Debug log
+        return res.json({
             success: true,
             data: {
-                stream: {
-                    id: stream.id,
-                    title: stream.title,
-                    status: stream.status,
-                    streamer_name: stream.streamer_name
-                },
-                participant: {
-                    id: streamer.id,
-                    display_name: streamer.display_name,
-                    role: 'streamer'
-                }
+                status: stream.status,
+                title: stream.title,
+                streamer_name: stream.streamer_name
             }
         });
-
     } catch (error) {
-        console.error('Error rejoining as streamer:', error);
+        console.error('Error checking stream status:', error);
         res.status(500).json({
             success: false,
-            error: "Internal server error"
+            error: "Có lỗi xảy ra khi kiểm tra trạng thái stream"
         });
     }
 });
 
-// API cho viewer join stream
+// Join stream cho viewer - POST /api/streams/viewer/join/:streamKey
 router.post('/viewer/join/:streamKey', async (req, res) => {
     try {
+        console.log('Join request received:', req.body); // Debug log
         const { display_name } = req.body;
-        const ip_address = req.headers['x-forwarded-for'] ||
-                            req.connection.remoteAddress ||
-                            req.socket.remoteAddress ||
-                            req.ip;
 
         if (!display_name) {
             return res.status(400).json({
                 success: false,
-                error: "Display name is required"
+                error: "Vui lòng nhập tên hiển thị"
             });
         }
 
@@ -87,70 +59,39 @@ router.post('/viewer/join/:streamKey', async (req, res) => {
         if (!stream) {
             return res.status(404).json({
                 success: false,
-                error: "Stream not found"
+                error: "Stream không tồn tại"
             });
         }
 
-        let viewer = await Participant.findOne({
-            where: {
-                stream_id: stream.id,
-                ip_address: ip_address,
-                role: 'viewer'
-            }
+        // Tạo participant mới
+        const participant = await Participant.create({
+            stream_id: stream.id,
+            display_name: display_name,
+            role: 'viewer',
+            ip_address: req.ip
         });
 
-        if (!viewer || viewer.display_name !== display_name) {
-            viewer = await Participant.create({
-                stream_id: stream.id,
-                ip_address: ip_address,
-                display_name: display_name,
-                role: 'viewer'
-            });
-        }
-
-        const isBanned = await BannedParticipant.findOne({
-            where: {
-                stream_id: stream.id,
-                ip_address: ip_address,
-                [Op.or]: [
-                    { ban_end_time: null }, // Permanent ban
-                    { ban_end_time: { [Op.gt]: new Date() } } // Temporary ban not expired
-                ]
-            }
-        });
-
-        if (isBanned) {
-            const banEndTime = isBanned.ban_end_time;
-            return res.status(403).json({
-                success: false,
-                error: banEndTime ?
-                    `You are banned until ${banEndTime.toISOString()}` :
-                    "You are permanently banned from this stream"
-            });
-        }
-
-        res.json({
+        console.log('Participant created:', participant.id); // Debug log
+        return res.json({
             success: true,
             data: {
+                participant: {
+                    id: participant.id,
+                    display_name: participant.display_name,
+                    role: participant.role
+                },
                 stream: {
                     id: stream.id,
                     title: stream.title,
-                    status: stream.status,
-                    streamer_name: stream.streamer_name
-                },
-                participant: {
-                    id: viewer.id,
-                    display_name: viewer.display_name,
-                    role: 'viewer'
+                    status: stream.status
                 }
             }
         });
-
     } catch (error) {
-        console.error('Error joining as viewer:', error);
+        console.error('Error joining stream:', error);
         res.status(500).json({
             success: false,
-            error: "Internal server error"
+            error: "Có lỗi xảy ra khi tham gia stream"
         });
     }
 });

@@ -5,6 +5,7 @@ const cors = require('cors');
 const streamRoutes = require('./routes/stream/streamRoutes');
 const streamAuthRoutes = require('./routes/stream/streamAuth');
 const streamCompleteRoutes = require('./routes/stream/streamComplete');
+const joinStreamRouter = require('./routes/stream/joinStream');
 
 function createServer(port = 3000) {
     // Create express app
@@ -24,6 +25,7 @@ function createServer(port = 3000) {
     app.use('/api/streams', streamRoutes);
     app.use('/api/streams', streamAuthRoutes);
     app.use('/api/streams', streamCompleteRoutes);
+    app.use('/api/streams', joinStreamRouter);
 
     // Khởi tạo WebSocket service
     const wsService = new WebSocketService(server);

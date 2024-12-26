@@ -76,13 +76,31 @@ function Sidebar() {
     <div className="w-full md:w-80 p-4 bg-white">
       <div className="h-full flex flex-col">
         <h2 className="text-2xl font-medium mb-4 text-orange-500">Tạo phiên live</h2>
-        <Button
-          className="w-full mb-4"
-          size="lg"
-          onClick={() => setShowCreateForm(true)}
-        >
-          Tạo phiên live ngay
-        </Button>
+
+        <div className="space-y-4 mb-4">
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            size="lg"
+            onClick={() => setShowCreateForm(true)}
+          >
+            Tạo phiên live ngay
+          </Button>
+
+          <Button
+            className="w-full border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
+            size="lg"
+            variant="outline"
+            onClick={() => {
+              if (streamInfo?.streamKey) {
+                navigate(`/join/${streamInfo.streamKey}`);
+              } else {
+                navigate('/join');
+              }
+            }}
+          >
+            Tham gia bằng mã stream
+          </Button>
+        </div>
 
         {/* Form Dialog */}
         <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>

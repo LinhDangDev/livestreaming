@@ -289,15 +289,15 @@ export default function LiveStream() {
 
   return (
     <div className="h-screen flex bg-black">
-      {/* Main content area */}
-      <div className={`flex-1 relative flex flex-col ${isChatPanelVisible ? 'mr-80' : ''}`}>
-        {/* Video container - fills available space */}
-        <div className="flex-1 relative">
+      {/* Main content area - Thêm overflow-hidden để ngăn video phóng to quá mức */}
+      <div className={`flex-1 relative flex flex-col overflow-hidden ${isChatPanelVisible ? 'mr-80' : ''}`}>
+        {/* Video container - Thêm max-h-[calc(100%-4rem)] để giữ video không vượt quá bottom controls */}
+        <div className="flex-1 relative max-h-[calc(100%-4rem)]">
           <VideoFeed />
         </div>
 
-        {/* Bottom controls - fixed height */}
-        <div className="h-16">
+        {/* Bottom controls - Thêm relative để đảm bảo luôn ở dưới video */}
+        <div className="h-16 relative">
           <BottomControls
             onToggleChatPanel={toggleChatPanel}
             onEndStream={handleEndStream}
@@ -305,7 +305,7 @@ export default function LiveStream() {
         </div>
       </div>
 
-      {/* Chat panel - fixed width */}
+      {/* Chat panel - Không thay đổi */}
       {isChatPanelVisible && (
         <div className="w-80 fixed right-0 top-0 bottom-0">
           <ChatPanel

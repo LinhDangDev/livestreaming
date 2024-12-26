@@ -44,7 +44,7 @@ function JoinStreamForm({
           id="displayName"
           placeholder="Nhập tên của bạn"
           value={formData.displayName}
-          onChange={(e) => setFormData(prev => ({
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData(prev => ({
             ...prev,
             displayName: e.target.value
           }))}
@@ -81,32 +81,38 @@ export default function JoinRoomLive() {
     }
 
     try {
-      // 1. Kiểm tra stream có tồn tại và đang active
-      const streamStatus = await streamService.checkStreamStatus(formData.streamKey);
+      // Kiểm tra stream status
+      const statusResponse = await streamService.checkStreamStatus(formData.streamKey);
 
-      if (!streamStatus.data.isActive) {
-        setError('Stream không tồn tại hoặc đã kết thúc');
+      if (!statusResponse.success) {
+        setError(statusResponse.error || 'Stream không tồn tại');
         return;
       }
 
-      // 2. Join stream
-      const response = await streamService.joinStream(
+      // Join stream
+      const joinResponse = await streamService.joinStream(
         formData.streamKey,
         formData.displayName
       );
 
-      // 3. Lưu thông tin
-      localStorage.setItem('participantInfo', JSON.stringify({
-        displayName: formData.displayName,
-        streamKey: formData.streamKey,
-        participantId: response.data.participant.id
-      }));
+      if (joinResponse.success) {
+        localStorage.setItem('participantInfo', JSON.stringify({
+          displayName: formData.displayName,
+          streamKey: formData.streamKey,
+          participantId: joinResponse.data.participant.id
+        }));
 
-      // 4. Chuyển đến trang xem stream
-      navigate(`/live/${formData.streamKey}`);
+        navigate(`/live/${formData.streamKey}`);
+      } else {
+        setError(joinResponse.error || 'Không thể tham gia stream');
+      }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      setError(err.response?.data?.error || 'Không thể tham gia stream');
+      console.error('Join stream error:', error);
+      setError(
+        error instanceof Error && 'response' in error && typeof error.response === 'object' && error.response !== null && 'data' in error.response && typeof error.response.data === 'object' && error.response.data !== null && 'error' in error.response.data
+          ? String(error.response.data.error)
+          : 'Có lỗi xảy ra khi tham gia stream, vui lòng thử lại'
+      );
     }
   };
 
