@@ -5,6 +5,10 @@ const Stream = require('../../entity/Stream');
 const Participant = require('../../entity/Participant');
 const BannedParticipant = require('../../entity/BannedParticipants');
 
+// Import các route mới tách
+const streamAuthRouter = require('./streamAuth');
+const streamCompleteRouter = require('./streamComplete');
+
 // Middleware kiểm tra người dùng bị ban
 router.use('/viewer/join/:streamKey', async (req, res, next) => {
     try {
@@ -64,5 +68,9 @@ router.use('/viewer/join/:streamKey', async (req, res, next) => {
         });
     }
 });
+
+// Sử dụng các route mới
+router.use('/', streamAuthRouter);
+router.use('/', streamCompleteRouter);
 
 module.exports = router;

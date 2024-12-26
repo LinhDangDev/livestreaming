@@ -2,53 +2,55 @@ services:
   mysql_db:
     image: mysql:8.0
     container_name: mysql_db
-    ports:
-      - "3307:3306"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: streaming_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "1935:1935"
+      - "8000:80"
+    volumes:
+      - ./hls:/var/www/html/hls
     networks:
       - app-network
 
   backend:
     build: ./backendlivestreaming
     container_name: backend
-    network_mode: "host"
+    environment:
+      DB_HOST: mysql_db
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: streaming_db
+      DB_PORT: 3306
     ports:
       - "3000:3000"
     depends_on:
       mysql_db:
         condition: service_healthy
-    environment:
-      DB_HOST: "localhost"
-      DB_USER: root
-      DB_PASSWORD: root
-      DB_NAME: streaming_db
-      DB_PORT: 3306
-
-  nginx:
-    image: tiangolo/nginx-rtmp
-    container_name: nginx
-    ports:
-      - "1935:1935"
-      - "8080:80"
     networks:
       - app-network
 
-  ffmpeg:
-    image: jrottenberg/ffmpeg
-    container_name: ffmpeg
-    depends_on:
-      - nginx
-    command: >
-      ffmpeg -i /path/to/your/video.mp4 -c copy -f flv rtmp://nginx:1935/live/stream
-    networks:
-      - app-network
+volumes:
+  mysql_data:
 
 networks:
   app-network:

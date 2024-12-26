@@ -1,20 +1,13 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('streaming_db', 'root', 'cntt15723', {
-    host: 'localhost',
+const sequelize = new Sequelize({
+    database: process.env.DB_NAME || 'streaming_db',
+    username: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'cntt15723',
+    host: process.env.DB_HOST || 'mysql_db',
+    port: process.env.DB_PORT || 3306,
     dialect: 'mysql',
-    logging: false,
-    define: {
-        charset: 'utf8mb4',
-        collate: 'utf8mb4_unicode_ci',
-        timestamps: false
-    },
-    pool: {
-        max: 5,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
-    }
+    logging: false
 });
 
 module.exports = sequelize;

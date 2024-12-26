@@ -2,6 +2,9 @@ const express = require('express');
 const http = require('http');
 const WebSocketService = require('./services/websocketService');
 const cors = require('cors');
+const streamRoutes = require('./routes/stream/streamRoutes');
+const streamAuthRoutes = require('./routes/stream/streamAuth');
+const streamCompleteRoutes = require('./routes/stream/streamComplete');
 
 function createServer(port = 3000) {
     // Create express app
@@ -18,6 +21,9 @@ function createServer(port = 3000) {
     // Routes
     app.use('/api/health', require('./routes/health'));
     app.use('/api', require('./routes/index'));
+    app.use('/api/streams', streamRoutes);
+    app.use('/api/streams', streamAuthRoutes);
+    app.use('/api/streams', streamCompleteRoutes);
 
     // Khởi tạo WebSocket service
     const wsService = new WebSocketService(server);
