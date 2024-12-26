@@ -1,17 +1,17 @@
 FROM node:18
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Install MySQL client
-RUN apt-get update && apt-get install -y default-mysql-client
+# Cài đặt các công cụ cần thiết
+RUN apt-get update && \
+  apt-get install -y \
+  default-mysql-client && \
+  rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-
 RUN npm install
 
 COPY . .
-RUN chmod +x wait-for-it.sh
 
-EXPOSE 3000
-
-CMD ["./wait-for-it.sh", "mysql_db", "npm", "start"]
+# Chạy trực tiếp npm start
+CMD ["npm", "start"]

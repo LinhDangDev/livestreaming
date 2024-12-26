@@ -2,65 +2,150 @@ import { useState, useEffect, useRef } from 'react';
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Shield, X, Send, Mic, Camera, MonitorUp, PictureInPicture, MessageCircle, Users, MoreVertical, Phone } from 'lucide-react';
-import Hls from 'hls.js';
+// import ReactPlayer from 'react-player';
 import { streamService } from '@/services/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import Hls from 'hls.js';
 
 // VideoFeed Component
 function VideoFeed() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { streamKey } = useParams();
+  const [error, setError] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const streamInfo = JSON.parse(localStorage.getItem('streamInfo') || '{}');
-    const { streamKey } = streamInfo;
+    if (!streamKey || !videoRef.current) return;
 
-    if (streamKey && videoRef.current) {
-      const hls = new Hls();
-      // Sửa URL để match với nginx config
-      const playbackUrl = `http://localhost:8000/hls/${streamKey}/index.m3u8`;
+    const video = videoRef.current;
+    let hls: Hls | null = null;
 
-      hls.loadSource(playbackUrl);
-      hls.attachMedia(videoRef.current);
+    const initializeStream = async () => {
+      try {
+        setIsLoading(true);
+        setError('');
 
-      // Thêm error handling
-      hls.on(Hls.Events.ERROR, function (event, data) {
-        console.error('HLS error:', data);
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('Network error, trying to recover...');
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('Media error, trying to recover...');
-              hls.recoverMediaError();
-              break;
-            default:
-              console.error('Fatal error, cannot recover');
-              break;
+        const streamUrl = `http://localhost:8000/live/${streamKey}/index.m3u8`;
+
+        // Add check stream status
+        const checkStream = async () => {
+          try {
+            const response = await fetch(streamUrl);
+            if (response.ok) {
+              return true;
+            }
+          } catch (error) {
+            console.error('Error checking stream:', error);
+            console.log('Stream not ready yet');
           }
-        }
-      });
-    }
+          return false;
+        };
 
-    return () => {
-      // Cleanup
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.destroy();
+        // Wait for stream to be ready
+        let retries = 10;
+        while (retries > 0) {
+          if (await checkStream()) {
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          retries--;
+        }
+
+        if (retries === 0) {
+          throw new Error('Stream không khả dụng');
+        }
+
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            debug: true,
+            enableWorker: true,
+            lowLatencyMode: true,
+            xhrSetup: function(xhr) {
+              xhr.withCredentials = false;
+            }
+          });
+
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            setIsLoading(false);
+            video.play().catch(err => {
+              console.error('Playback failed:', err);
+              setError('Failed to start playback');
+            });
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.error('HLS error:', data);
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.log('Fatal network error encountered, trying to recover...');
+                  hls?.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.log('Fatal media error encountered, trying to recover...');
+                  hls?.recoverMediaError();
+                  break;
+                default:
+                  hls?.destroy();
+                  setError('Stream không khả dụng');
+                  break;
+              }
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = streamUrl;
+          video.addEventListener('loadedmetadata', () => {
+            setIsLoading(false);
+            video.play().catch(console.error);
+          });
+        } else {
+          setError('Trình duyệt không hỗ trợ HLS');
+        }
+      } catch (err) {
+        console.error('Stream initialization error:', err);
+        setError('Không thể khởi tạo stream');
+        setIsLoading(false);
       }
     };
-  }, []);
+
+    initializeStream();
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+      if (video) {
+        video.pause();
+        video.src = '';
+        video.load();
+      }
+    };
+  }, [streamKey]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full bg-black">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      )}
+
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className="w-full h-full"
         controls
-        autoPlay
         playsInline
+        muted
       />
+
+      {error && (
+        <div className="absolute top-0 left-0 right-0 bg-red-500 text-white p-2 text-center">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
@@ -203,17 +288,32 @@ export default function LiveStream() {
   };
 
   return (
-    <div className="h-screen flex">
-      <div className={`flex-1 relative ${isChatPanelVisible ? '' : ''}`}>
-        <VideoFeed />
-        <BottomControls onToggleChatPanel={toggleChatPanel} onEndStream={handleEndStream} />
+    <div className="h-screen flex bg-black">
+      {/* Main content area */}
+      <div className={`flex-1 relative flex flex-col ${isChatPanelVisible ? 'mr-80' : ''}`}>
+        {/* Video container - fills available space */}
+        <div className="flex-1 relative">
+          <VideoFeed />
+        </div>
+
+        {/* Bottom controls - fixed height */}
+        <div className="h-16">
+          <BottomControls
+            onToggleChatPanel={toggleChatPanel}
+            onEndStream={handleEndStream}
+          />
+        </div>
       </div>
+
+      {/* Chat panel - fixed width */}
       {isChatPanelVisible && (
-        <ChatPanel
-          onClose={toggleChatPanel}
-          onSendMessage={handleSendMessage}
-          messages={messages}
-        />
+        <div className="w-80 fixed right-0 top-0 bottom-0">
+          <ChatPanel
+            onClose={toggleChatPanel}
+            onSendMessage={handleSendMessage}
+            messages={messages}
+          />
+        </div>
       )}
     </div>
   );

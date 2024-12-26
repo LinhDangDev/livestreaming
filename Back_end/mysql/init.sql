@@ -23,13 +23,14 @@ CREATE TABLE IF NOT EXISTS participants (
     FOREIGN KEY (stream_id) REFERENCES streams(id)
 );
 
--- Bảng chat
-CREATE TABLE IF NOT EXISTS chat (
+-- Bảng chats
+CREATE TABLE IF NOT EXISTS chats (
     id INT PRIMARY KEY AUTO_INCREMENT,
     stream_id INT NOT NULL,
     participant_id INT NOT NULL,
     message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    sent_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    has_attachment BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (stream_id) REFERENCES streams(id),
     FOREIGN KEY (participant_id) REFERENCES participants(id)
 );
@@ -43,7 +44,7 @@ CREATE TABLE IF NOT EXISTS attachments (
     file_size INT,
     upload_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (chat_id) REFERENCES chat(id)
+    FOREIGN KEY (chat_id) REFERENCES chats(id)
 );
 
 -- Bảng banned_participants

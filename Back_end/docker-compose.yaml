@@ -22,18 +22,20 @@ services:
     build:
       context: ./nginx
       dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+      - "1935:1935"
+    volumes:
+      - ./nginx/hls:/usr/local/nginx/html/hls
+      - ./nginx/logs:/usr/local/nginx/logs
     depends_on:
       - backend
-    ports:
-      - "1935:1935"
-      - "8000:80"
-    volumes:
-      - ./hls:/var/www/html/hls
     networks:
       - app-network
 
   backend:
-    build: ./backendlivestreaming
+    build:
+      context: ./backendlivestreaming
     container_name: backend
     environment:
       DB_HOST: mysql_db
@@ -48,6 +50,7 @@ services:
         condition: service_healthy
     networks:
       - app-network
+    restart: unless-stopped
 
 volumes:
   mysql_data:
