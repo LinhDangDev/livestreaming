@@ -35,22 +35,22 @@ export const streamService = {
 
   // End stream
   endStream: async (streamKey: string) => {
-    const response = await axios.post(`${BASE_URL}/streams/end/${streamKey}`);
-    return response.data;
+      const response = await axios.post(`${BASE_URL}/streams/${streamKey}/end`);
+      return response.data;
   },
 
-  // Chat operations
-  sendMessage: async (streamKey: string, message: string) => {
-    const response = await axios.post(`${BASE_URL}/streams/chat/${streamKey}`, {
-      message
-    });
-    return response.data;
-  },
+  // // Chat operations
+  // sendMessage: async (streamKey: string, message: string) => {
+  //   const response = await axios.post(`${BASE_URL}/streams/chat/${streamKey}`, {
+  //     message
+  //   });
+  //   return response.data;
+  // },
 
-  getChatHistory: async (streamKey: string) => {
-    const response = await axios.get(`${BASE_URL}/streams/chat/${streamKey}`);
-    return response.data;
-  },
+  // getChatHistory: async (streamKey: string) => {
+  //   const response = await axios.get(`${BASE_URL}/streams/chat/${streamKey}`);
+  //   return response.data;
+  // },
 
   // Recording operations
   startRecording: async (streamKey: string) => {

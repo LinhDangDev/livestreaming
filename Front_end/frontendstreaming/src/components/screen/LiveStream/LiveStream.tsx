@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Mic, Camera, MonitorUp, PictureInPicture, Users, MoreVertical, Phone, Volume2, Settings, Maximize2, MessageCircle } from 'lucide-react';
+import { Mic, Camera, MonitorUp, PictureInPicture, Users, MoreVertical, Phone, Volume2, Settings, Maximize2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
 import { streamService } from '@/services/api';
@@ -120,7 +120,7 @@ function VideoFeed() {
 }
 
 // BottomControls Component
-function BottomControls({ onToggleChatPanel, onEndStream }: { onToggleChatPanel: () => void, onEndStream: () => void }) {
+function BottomControls({ onEndStream }: { onEndStream: () => void }) {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-16 bg-black/50 backdrop-blur-sm flex items-center justify-between px-4">
       <div className="flex items-center gap-2">
@@ -154,34 +154,8 @@ function BottomControls({ onToggleChatPanel, onEndStream }: { onToggleChatPanel:
 
 // Main LiveStream Component
 export default function LiveStream() {
-  const [isChatPanelVisible, setIsChatPanelVisible] = useState(false);
-  const [messages, setMessages] = useState([]);
   const { streamKey } = useParams();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (streamKey) {
-      loadChatHistory();
-    }
-  }, [streamKey]);
-
-  const loadChatHistory = async () => {
-    try {
-      const response = await streamService.getChatHistory(streamKey!);
-      setMessages(response.data);
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-    }
-  };
-
-  const handleSendMessage = async (message: string) => {
-    try {
-      await streamService.sendMessage(streamKey!, message);
-      loadChatHistory();
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
-  };
 
   const handleEndStream = async () => {
     try {
@@ -192,13 +166,9 @@ export default function LiveStream() {
     }
   };
 
-  const toggleChatPanel = () => {
-    setIsChatPanelVisible(!isChatPanelVisible);
-  };
-
   return (
     <div className="h-screen flex bg-black">
-      <div className={`flex-1 relative flex flex-col overflow-hidden ${isChatPanelVisible ? 'mr-80' : ''}`}>
+      <div className="flex-1 relative flex flex-col overflow-hidden">
         <div className="flex-1 relative max-h-[calc(100%-4rem)]">
           <VideoFeed />
         </div>
@@ -215,12 +185,6 @@ export default function LiveStream() {
               <button className="p-2 text-white hover:bg-white/20 rounded-full">
                 <Settings className="w-5 h-5" />
               </button>
-              <button
-                className="p-2 text-white hover:bg-white/20 rounded-full"
-                onClick={toggleChatPanel}
-              >
-                <MessageCircle className="w-5 h-5" />
-              </button>
               <button className="p-2 text-white hover:bg-white/20 rounded-full">
                 <Maximize2 className="w-5 h-5" />
               </button>
@@ -230,21 +194,10 @@ export default function LiveStream() {
 
         <div className="h-16 relative">
           <BottomControls
-            onToggleChatPanel={toggleChatPanel}
             onEndStream={handleEndStream}
           />
         </div>
       </div>
-
-      {isChatPanelVisible && (
-        <div className="w-80 fixed right-0 top-0 bottom-0">
-          <ChatPanel
-            onClose={toggleChatPanel}
-            onSendMessage={handleSendMessage}
-            messages={messages}
-          />
-        </div>
-      )}
     </div>
   );
 }

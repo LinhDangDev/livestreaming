@@ -20,6 +20,14 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 
+// Cập nhật interface cho streamInfo
+interface StreamInfo {
+  streamKey: string;
+  streamerName: string;
+  title: string;
+  isRecording?: boolean;  // Thêm trường này
+}
+
 // Header Component
 function Header() {
   return (
@@ -43,25 +51,27 @@ function Sidebar() {
   const [showStreamInfo, setShowStreamInfo] = useState(false)
   const [formData, setFormData] = useState({
     displayName: '',
-    title: ''
+    title: '',
+    enableRecording: false
   })
-  const [streamInfo, setStreamInfo] = useState<{
-    streamKey: string;
-    streamerName: string;
-    title: string;
-  } | null>(null)
+  const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
 
   const handleCreateStream = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await streamService.createStream(formData.title, formData.displayName);
+      const response = await streamService.createStream(
+        formData.title,
+        formData.displayName,
+        // formData.enableRecording
+      );
 
       if (response.success) {
         const { stream } = response.data;
         setStreamInfo({
           streamKey: stream.stream_key,
           streamerName: stream.streamer_name,
-          title: stream.title
+          title: stream.title,
+          isRecording: formData.enableRecording
         });
         setShowCreateForm(false);
         setShowStreamInfo(true);
@@ -142,6 +152,22 @@ function Sidebar() {
                 </div>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="enableRecording"
+                  checked={formData.enableRecording}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    enableRecording: e.target.checked
+                  }))}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="enableRecording">
+                  Ghi lại video stream
+                </Label>
+              </div>
+
               <div className="flex justify-end space-x-2">
                 <Button
                   type="button"
@@ -169,6 +195,11 @@ function Sidebar() {
               <DialogTitle className="text-xl font-semibold">Thông tin Stream</DialogTitle>
               <DialogDescription className="text-gray-500">
                 Sử dụng thông tin này để cấu hình OBS Studio
+                {streamInfo?.isRecording && (
+                  <div className="mt-2 text-blue-600">
+                    ⚫ Ghi hình đã được bật cho phiên stream này
+                  </div>
+                )}
               </DialogDescription>
             </DialogHeader>
             {streamInfo && (
@@ -219,6 +250,15 @@ function Sidebar() {
                     </Button>
                   </div>
                 </div>
+
+                {/* Thêm thông tin về recording status */}
+                {streamInfo.isRecording && (
+                  <div className="p-3 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-700">
+                      Video của buổi stream sẽ được lưu lại tự động khi kết thúc.
+                    </p>
+                  </div>
+                )}
 
                 <div className="pt-4 flex justify-end">
                   <Button

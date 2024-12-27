@@ -29,7 +29,9 @@ services:
       - ./nginx/nginx.conf:/usr/local/nginx/conf/nginx.conf:ro
       - ./nginx/rtmp.conf:/usr/local/nginx/conf/rtmp.conf:ro
       - ./data/hls:/usr/local/nginx/html/live
+      - ./data/recordings:/usr/local/nginx/recordings
       - ./nginx/logs:/usr/local/nginx/logs
+      - ./Back_end/data:/data
     depends_on:
       - backend
     networks:
