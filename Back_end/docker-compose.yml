@@ -23,12 +23,12 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8080:80"
       - "1935:1935"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/rtmp.conf:/etc/nginx/rtmp.conf:ro
-      - ./nginx/live:/usr/local/nginx/html/live
+      - ./nginx/nginx.conf:/usr/local/nginx/conf/nginx.conf:ro
+      - ./nginx/rtmp.conf:/usr/local/nginx/conf/rtmp.conf:ro
+      - ./data/hls:/usr/local/nginx/html/live
       - ./nginx/logs:/usr/local/nginx/logs
     depends_on:
       - backend
