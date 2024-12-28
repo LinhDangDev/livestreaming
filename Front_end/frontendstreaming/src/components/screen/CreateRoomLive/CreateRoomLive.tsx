@@ -20,12 +20,27 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 
-// Cập nhật interface cho streamInfo
+// Thêm interface VideoQuality
+interface VideoQuality {
+  label: string;
+  value: string;
+  bitrate: number;
+}
+
+// Thêm mảng videoQualities
+const videoQualities: VideoQuality[] = [
+  { label: "Cao (1080p)", value: "1080p", bitrate: 4000000 }, // 4 Mbps
+  { label: "Trung bình (720p)", value: "720p", bitrate: 2500000 }, // 2.5 Mbps
+  { label: "Thấp (480p)", value: "480p", bitrate: 1000000 }, // 1 Mbps
+];
+
+// Cập nhật interface StreamInfo
 interface StreamInfo {
   streamKey: string;
   streamerName: string;
   title: string;
-  isRecording?: boolean;  // Thêm trường này
+  isRecording?: boolean;
+  quality?: VideoQuality;  // Thêm trường này
 }
 
 // Header Component
@@ -55,6 +70,7 @@ function Sidebar() {
     enableRecording: false
   })
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
+  const [selectedQuality, setSelectedQuality] = useState<VideoQuality>(videoQualities[1]); // Mặc định 720p
 
   const handleCreateStream = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,17 +78,20 @@ function Sidebar() {
       const response = await streamService.createStream(
         formData.title,
         formData.displayName,
-        // formData.enableRecording
       );
 
       if (response.success) {
         const { stream } = response.data;
-        setStreamInfo({
+        const streamInfo = {
           streamKey: stream.stream_key,
           streamerName: stream.streamer_name,
           title: stream.title,
-          isRecording: formData.enableRecording
-        });
+          isRecording: formData.enableRecording,
+          quality: selectedQuality
+        };
+        setStreamInfo(streamInfo);
+        // Lưu thông tin stream vào localStorage
+        localStorage.setItem('streamInfo', JSON.stringify(streamInfo));
         setShowCreateForm(false);
         setShowStreamInfo(true);
       }
@@ -150,6 +169,24 @@ function Sidebar() {
                     className="w-full px-3 py-2 border rounded-md"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Chất lượng Stream</Label>
+                <select
+                  value={selectedQuality.value}
+                  onChange={(e) => {
+                    const quality = videoQualities.find(q => q.value === e.target.value);
+                    if (quality) setSelectedQuality(quality);
+                  }}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {videoQualities.map((quality) => (
+                    <option key={quality.value} value={quality.value}>
+                      {quality.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -249,6 +286,18 @@ function Sidebar() {
                       Copy
                     </Button>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Chất lượng Stream</Label>
+                  <Input
+                    readOnly
+                    value={streamInfo?.quality?.label || "720p (Mặc định)"}
+                    className="bg-gray-50"
+                  />
+                  <p className="text-sm text-gray-500">
+                    Bitrate khuyến nghị: {(streamInfo?.quality?.bitrate || 2500000) / 1000000} Mbps
+                  </p>
                 </div>
 
                 {/* Thêm thông tin về recording status */}

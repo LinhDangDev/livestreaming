@@ -3,6 +3,15 @@ import { Mic, Camera, MonitorUp, PictureInPicture, Users, MoreVertical, Phone, V
 import { useParams, useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
 import { streamService } from '@/services/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+
 
 // VideoFeed Component
 function VideoFeed() {
@@ -156,11 +165,27 @@ function BottomControls({ onEndStream }: { onEndStream: () => void }) {
 export default function LiveStream() {
   const { streamKey } = useParams();
   const navigate = useNavigate();
+  const [showEndDialog, setShowEndDialog] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
+  // Kiểm tra trạng thái recording khi component mount
+  useEffect(() => {
+    const streamInfo = localStorage.getItem('streamInfo');
+    if (streamInfo) {
+      const { isRecording } = JSON.parse(streamInfo);
+      setIsRecording(isRecording);
+    }
+  }, []);
 
   const handleEndStream = async () => {
     try {
       await streamService.endStream(streamKey!);
-      navigate('/');
+
+      if (isRecording) {
+        setShowEndDialog(true);
+      } else {
+        navigate('/create');
+      }
     } catch (error) {
       console.error('Error ending stream:', error);
     }
@@ -193,10 +218,42 @@ export default function LiveStream() {
         </div>
 
         <div className="h-16 relative">
-          <BottomControls
-            onEndStream={handleEndStream}
-          />
+          <BottomControls onEndStream={handleEndStream} />
         </div>
+
+        {/* End Stream Dialog */}
+        <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+          <DialogContent className="sm:max-w-[425px] bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">Stream đã kết thúc</DialogTitle>
+              <DialogDescription className="text-gray-500">
+                Video của buổi stream đã được lưu lại
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="p-3 bg-blue-50 rounded-md">
+                <p className="text-sm text-blue-700">
+                  Video đã được lưu tại: /usr/local/nginx/recordings/{streamKey}.mp4
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  Video sẽ được xử lý và có sẵn trong thư viện của bạn sau vài phút.
+                </p>
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                <Button
+                  onClick={() => {
+                    setShowEndDialog(false);
+                    navigate('/create');
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Quay về trang chủ
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
