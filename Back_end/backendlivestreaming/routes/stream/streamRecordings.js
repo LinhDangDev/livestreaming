@@ -146,4 +146,19 @@ router.get('/recordings/:streamKey', async (req, res) => {
     }
 });
 
+router.post('/streams/recording', async (req, res) => {
+  const { path, name } = req.body;
+  try {
+    // Cập nhật trạng thái recording trong database
+    await StreamModel.updateOne(
+      { stream_key: name },
+      { $set: { recording_path: path } }
+    );
+    res.status(200).send({ success: true });
+  } catch (error) {
+    console.error('Error handling recording:', error);
+    res.status(500).send({ success: false, error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

@@ -5,6 +5,10 @@ RUN apt-get update && \
   apt-get install -y build-essential libpcre3-dev libssl-dev zlib1g-dev wget git ffmpeg && \
   rm -rf /var/lib/apt/lists/*
 
+# Create nginx user and group
+RUN groupadd -r nginx && \
+  useradd -r -g nginx nginx
+
 # Download and extract NGINX
 WORKDIR /tmp
 RUN wget http://nginx.org/download/nginx-1.24.0.tar.gz && \
@@ -31,6 +35,11 @@ RUN mkdir -p /usr/local/nginx/conf/conf.d && \
   chmod -R 777 /usr/local/nginx/html/hls && \
   mkdir -p /usr/local/nginx/html/live && \
   chmod -R 777 /usr/local/nginx/html/live
+
+# Create recordings directory and set permissions
+RUN mkdir -p /usr/local/nginx/recordings && \
+  chmod -R 777 /usr/local/nginx/recordings && \
+  chown -R nginx:nginx /usr/local/nginx/recordings
 
 # Forward logs
 RUN ln -sf /dev/stdout /usr/local/nginx/logs/access.log && \

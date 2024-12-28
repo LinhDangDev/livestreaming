@@ -18,6 +18,21 @@ function VideoFeed() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { streamKey } = useParams();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [needsInteraction, setNeedsInteraction] = useState(true);
+
+  const handleUserInteraction = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = false;
+      videoRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+          setNeedsInteraction(false);
+        })
+        .catch(error => {
+          console.error("Playback error:", error);
+        });
+    }
+  };
 
   useEffect(() => {
     if (videoRef.current && streamKey) {
@@ -83,15 +98,13 @@ function VideoFeed() {
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('Manifest parsed, attempting playback');
+            video.muted = true;
             video.play()
               .then(() => {
                 setIsPlaying(true);
-                video.muted = false;
               })
               .catch(error => {
                 console.error("Playback error:", error);
-                video.muted = true;
-                video.play();
               });
           });
 
@@ -122,6 +135,18 @@ function VideoFeed() {
       {!isPlaying && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-white">Loading stream...</div>
+        </div>
+      )}
+
+      {needsInteraction && isPlaying && (
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer"
+          onClick={handleUserInteraction}
+        >
+          <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg text-white text-center">
+            <h3 className="text-xl mb-2">Click để bật âm thanh</h3>
+            <p className="text-sm">Stream đang được phát không có âm thanh</p>
+          </div>
         </div>
       )}
     </div>

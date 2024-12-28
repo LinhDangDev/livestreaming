@@ -1,0 +1,5 @@
+services:
+  nginx:
+    volumes:
+      - ./nginx/nginx.conf:/usr/local/nginx/conf/nginx.conf
+      - ./nginx/recordings:/usr/local/nginx/recordings 
