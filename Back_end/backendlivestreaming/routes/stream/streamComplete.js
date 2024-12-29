@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Stream = require('../../entity/Stream');
 const StreamRecording = require('../../entity/StreamRecording');
+const RecordingService = require('../../services/recordingService');
 
 // API xử lý khi stream kết thúc
 router.post('/complete', async (req, res) => {
@@ -25,26 +26,29 @@ router.post('/complete', async (req, res) => {
             ended_at: new Date()
         });
 
-        // Optional: Update any active recordings
-        await StreamRecording.update(
-            {
-                status: 'completed',
-                ended_at: new Date()
-            },
-            {
-                where: {
-                    stream_id: stream.id,
-                    status: 'recording'
-                }
+        // Update recording status and metadata
+        const activeRecording = await StreamRecording.findOne({
+            where: {
+                stream_id: stream.id,
+                status: 'recording'
             }
-        );
+        });
+
+        if (activeRecording) {
+            await RecordingService.updateRecordingMetadata(activeRecording.id);
+        }
 
         res.json({
             success: true,
             data: {
                 stream_id: stream.id,
                 status: 'completed',
-                ended_at: stream.ended_at
+                ended_at: stream.ended_at,
+                recording: activeRecording ? {
+                    id: activeRecording.id,
+                    file_url: activeRecording.file_url,
+                    status: 'completed'
+                } : null
             }
         });
 
@@ -58,4 +62,4 @@ router.post('/complete', async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

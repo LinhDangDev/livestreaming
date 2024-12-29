@@ -4,10 +4,12 @@ const { Op } = require('sequelize');
 const Stream = require('../../entity/Stream');
 const Participant = require('../../entity/Participant');
 const BannedParticipant = require('../../entity/BannedParticipants');
+const { checkStreamStatus } = require('../../middleware/streamMiddleware');
 
 // Import các route mới tách
 const streamAuthRouter = require('./streamAuth');
 const streamCompleteRouter = require('./streamComplete');
+const endStreamRouter = require('./endStream');
 
 // Middleware kiểm tra người dùng bị ban
 router.use('/viewer/join/:streamKey', async (req, res, next) => {
@@ -72,5 +74,6 @@ router.use('/viewer/join/:streamKey', async (req, res, next) => {
 // Sử dụng các route mới
 router.use('/', streamAuthRouter);
 router.use('/', streamCompleteRouter);
+router.use('/', endStreamRouter);
 
 module.exports = router;

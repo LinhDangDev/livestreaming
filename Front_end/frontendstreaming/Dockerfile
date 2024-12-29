@@ -1,23 +1,24 @@
-# Use an official Node.js runtime as a parent image
-FROM node:22.12.0
+FROM node:18-alpine
 
-# Set the working directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application code
 COPY . .
+
+# Add environment variables
+ENV VITE_API_URL=http://backend:3000
+ENV VITE_RTMP_URL=rtmp://nginx:1935
+ENV VITE_HLS_URL=http://nginx:8080
 
 # Build the application
 RUN npm run build
 
-# Expose the port the app runs on
+# Install serve to serve the static files
+RUN npm install -g serve
+
 EXPOSE 5173
 
-# Define the command to run the app
-CMD ["npm", "run", "build"]
+# Serve the built application
+CMD ["serve", "-s", "dist", "-l", "5173"]

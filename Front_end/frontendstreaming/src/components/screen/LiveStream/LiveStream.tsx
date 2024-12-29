@@ -2,15 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Mic, Camera, MonitorUp, PictureInPicture, Users, MoreVertical, Phone, Volume2, Settings, Maximize2 } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Hls from 'hls.js';
-import { streamService } from '@/services/api';
 import {
-  Dialog,
-  DialogContent,
+
   DialogHeader,
-  DialogTitle,
+
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 
 
 // VideoFeed Component
@@ -192,6 +191,11 @@ export default function LiveStream() {
   const navigate = useNavigate();
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingInfo, setRecordingInfo] = useState<{
+    file_url?: string;
+    status?: string;
+  } | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   // Kiểm tra trạng thái recording khi component mount
   useEffect(() => {
@@ -202,17 +206,38 @@ export default function LiveStream() {
     }
   }, []);
 
+  const handleEndStreamClick = () => {
+    setIsConfirmDialogOpen(true);
+  };
+
   const handleEndStream = async () => {
     try {
-      await streamService.endStream(streamKey!);
+        setIsConfirmDialogOpen(false);
 
-      if (isRecording) {
-        setShowEndDialog(true);
-      } else {
-        navigate('/create');
-      }
+        if (!streamKey) {
+            throw new Error('Stream key not found');
+        }
+
+        const response = await fetch(`http://localhost:3000/api/streams/end/${streamKey}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Chuyển hướng về trang chủ sau khi end stream thành công
+            navigate('/');
+        } else {
+            throw new Error(data.error || 'Failed to end stream');
+        }
+
     } catch (error) {
-      console.error('Error ending stream:', error);
+        console.error('Error ending stream:', error);
+        alert('Không thể kết thúc stream. Vui lòng thử lại!');
     }
   };
 
@@ -243,29 +268,75 @@ export default function LiveStream() {
         </div>
 
         <div className="h-16 relative">
-          <BottomControls onEndStream={handleEndStream} />
+          <BottomControls onEndStream={handleEndStreamClick} />
         </div>
 
         {/* End Stream Dialog */}
-        <Dialog open={showEndDialog} onOpenChange={setShowEndDialog}>
+        <Dialog open={showEndDialog} onChange={setShowEndDialog}>
           <DialogContent className="sm:max-w-[425px] bg-white">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">Stream đã kết thúc</DialogTitle>
               <DialogDescription className="text-gray-500">
-                Video của buổi stream đã được lưu lại
+                {isRecording ? "Video của buổi stream đã được lưu lại" : "Stream đã kết thúc thành công"}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="p-3 bg-blue-50 rounded-md">
-                <p className="text-sm text-blue-700">
-                  Video đã được lưu tại: /usr/local/nginx/recordings/{streamKey}.mp4
-                </p>
-                <p className="text-sm text-gray-500 mt-2">
-                  Video sẽ được xử lý và có sẵn trong thư viện của bạn sau vài phút.
-                </p>
-              </div>
+              {isRecording && recordingInfo && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-blue-50 rounded-md">
+                    <p className="text-sm text-blue-700 font-medium mb-2">
+                      Trạng thái Recording: {recordingInfo.status === 'completed' ? 'Đã hoàn thành' : 'Đang xử lý'}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      Video đã được lưu tại: {recordingInfo.file_url}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      • OBS Studio đã được ngắt kết nối
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      • Video sẽ được xử lý và có sẵn trong thư viện của bạn sau vài phút
+                    </p>
+                  </div>
 
-              <div className="pt-4 flex justify-end">
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-md">
+                    <svg
+                      className="w-5 h-5 text-yellow-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <p className="text-sm text-yellow-700">
+                      Vui lòng không đóng trình duyệt cho đến khi video được xử lý xong
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-4 flex justify-end gap-2">
+                {recordingInfo && recordingInfo.file_url && (
+                  <Button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(recordingInfo.file_url || '');
+                        alert('Đã copy đường dẫn vào clipboard!');
+                      } catch (error) {
+                        console.error('Error copying to clipboard:', error);
+                        alert('Không thể copy đường dẫn. Vui lòng thử lại!');
+                      }
+                    }}
+                    variant="outline"
+                    className="px-4 py-2"
+                  >
+                    Copy đường dẫn
+                  </Button>
+                )}
                 <Button
                   onClick={() => {
                     setShowEndDialog(false);
@@ -278,6 +349,40 @@ export default function LiveStream() {
               </div>
             </div>
           </DialogContent>
+        </Dialog>
+
+        {/* Dialog xác nhận */}
+        <Dialog
+          open={isConfirmDialogOpen}
+          onClose={() => setIsConfirmDialogOpen(false)}
+        >
+          <DialogTitle>
+            Xác nhận kết thúc live stream
+          </DialogTitle>
+          <DialogContent>
+            Bạn có chắc chắn muốn kết thúc phiên live stream này?
+            {isRecording && (
+              <p>
+                Lưu ý: File recording sẽ được lưu lại và phiên live stream sẽ kết thúc hoàn toàn.
+                Người xem sẽ không thể tham gia lại phiên này.
+              </p>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setIsConfirmDialogOpen(false)}
+              color="primary"
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleEndStream}
+              color="error"
+              variant="default"
+            >
+              Kết thúc
+            </Button>
+          </DialogActions>
         </Dialog>
       </div>
     </div>

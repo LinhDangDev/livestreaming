@@ -1,27 +1,27 @@
 const express = require('express');
 const router = express.Router();
 const Stream = require('../../entity/Stream');
-const Participant = require('../../entity/Participant');
+const StreamRecording = require('../../entity/StreamRecording');
+const rtmpService = require('../../services/rtmpService');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
+const cors = require('cors');
+
+// Thêm CORS middleware
+router.use(cors({
+    origin: 'http://localhost:5173', // Frontend URL
+    credentials: true
+}));
 
 router.post('/end/:streamKey', async (req, res) => {
     try {
-        const ip_address = req.headers['x-forwarded-for'] ||
-                            req.connection.remoteAddress ||
-                            req.socket.remoteAddress ||
-                            req.ip;
+        const { streamKey } = req.params;
+        console.log('Attempting to end stream:', streamKey);
 
-        const viewerId = req.headers['x-viewer-id'];
-
-        // If request comes from viewer
-        if (viewerId) {
-            return res.status(403).json({
-                success: false,
-                error: "Only the streamer can end this live stream"
-            });
-        }
-
+        // 1. Kiểm tra stream tồn tại
         const stream = await Stream.findOne({
-            where: { stream_key: req.params.streamKey }
+            where: { stream_key: streamKey }
         });
 
         if (!stream) {
@@ -31,23 +31,51 @@ router.post('/end/:streamKey', async (req, res) => {
             });
         }
 
-        const streamer = await Participant.findOne({
+        // 2. Dừng recording nếu đang ghi
+        const activeRecording = await StreamRecording.findOne({
             where: {
                 stream_id: stream.id,
-                role: 'streamer',
-                ip_address: ip_address
+                status: 'recording'
             }
         });
 
-        if (!streamer) {
-            return res.status(403).json({
-                success: false,
-                error: "Only the streamer can end this live stream"
-            });
+        if (activeRecording) {
+            try {
+                // Cập nhật trạng thái recording
+                await activeRecording.update({
+                    status: 'completed',
+                    ended_at: new Date()
+                });
+                console.log('Recording marked as completed');
+            } catch (error) {
+                console.error('Error updating recording status:', error);
+            }
         }
 
+        // 3. Ngắt kết nối RTMP
+        try {
+            // Sử dụng process kill thay vì nginx reload
+            const { stdout, stderr } = await execAsync('ps aux | grep ffmpeg');
+            const processes = stdout.split('\n');
+
+            for (const process of processes) {
+                if (process.includes(streamKey)) {
+                    const pid = process.split(/\s+/)[1];
+                    try {
+                        await execAsync(`kill -9 ${pid}`);
+                        console.log(`Killed RTMP process: ${pid}`);
+                    } catch (error) {
+                        console.error(`Error killing process ${pid}:`, error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error terminating RTMP:', error);
+        }
+
+        // 4. Cập nhật trạng thái stream
         await stream.update({
-            status: 'inactive'
+            status: 'inactive' // Sử dụng 'inactive' thay vì 'ended'
         });
 
         res.json({
@@ -55,17 +83,21 @@ router.post('/end/:streamKey', async (req, res) => {
             message: "Stream ended successfully",
             data: {
                 stream_id: stream.id,
-                title: stream.title,
-                streamer_name: stream.streamer_name,
-                status: 'inactive'
+                status: 'inactive',
+                recording: activeRecording ? {
+                    id: activeRecording.id,
+                    file_url: activeRecording.file_path,
+                    status: 'completed'
+                } : null
             }
         });
 
     } catch (error) {
-        console.error('Error ending stream:', error);
+        console.error('Detailed error in end stream:', error);
         res.status(500).json({
             success: false,
-            error: "Internal server error"
+            error: "Could not end stream",
+            details: error.message
         });
     }
 });

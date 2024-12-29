@@ -9,14 +9,10 @@ const StreamRecording = sequelize.define('StreamRecording', {
     },
     stream_id: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'streams',
-            key: 'id'
-        }
+        allowNull: false
     },
-    file_url: {
-        type: DataTypes.STRING,
+    file_path: {
+        type: DataTypes.STRING(255),
         allowNull: false
     },
     duration: {
@@ -41,7 +37,8 @@ const StreamRecording = sequelize.define('StreamRecording', {
     }
 }, {
     tableName: 'stream_recordings',
-    timestamps: false
+    timestamps: false,
+    underscored: true
 });
 
 module.exports = StreamRecording;

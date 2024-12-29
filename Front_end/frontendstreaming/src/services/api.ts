@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const BASE_URL = 'http://localhost:3000/api';
 
@@ -22,35 +22,24 @@ export const streamService = {
       console.log('Join response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error joining stream:', error);
-      if (axios.isAxiosError(error)) {
+        if (error instanceof AxiosError) {
+        console.error('Axios error', error.message);
         throw {
-          message: error.response?.data?.error || 'Không thể tham gia stream',
-          status: error.response?.status
+            message: error.response?.data?.error || 'Không thể tham gia stream',
+            status: error.response?.status
         };
-      }
-      throw error;
+        } else {
+        console.error('Unknown error', error);
+        throw error;
+        }
     }
-  },
+},
 
   // End stream
   endStream: async (streamKey: string) => {
-      const response = await axios.post(`${BASE_URL}/streams/${streamKey}/end`);
-      return response.data;
+    const response = await axios.post(`${BASE_URL}/streams/end/${streamKey}`);
+    return response.data;
   },
-
-  // // Chat operations
-  // sendMessage: async (streamKey: string, message: string) => {
-  //   const response = await axios.post(`${BASE_URL}/streams/chat/${streamKey}`, {
-  //     message
-  //   });
-  //   return response.data;
-  // },
-
-  // getChatHistory: async (streamKey: string) => {
-  //   const response = await axios.get(`${BASE_URL}/streams/chat/${streamKey}`);
-  //   return response.data;
-  // },
 
   // Recording operations
   startRecording: async (streamKey: string) => {
@@ -87,14 +76,16 @@ export const streamService = {
       console.log('Status response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error checking stream status:', error);
-      if (axios.isAxiosError(error)) {
+      if (error instanceof AxiosError) {
+        console.error('Axios error', error.message);
         throw {
           message: error.response?.data?.error || 'Không thể kiểm tra trạng thái stream',
           status: error.response?.status
         };
+      } else {
+        console.error('Unknown error', error);
+        throw error;
       }
-      throw error;
     }
   }
 };

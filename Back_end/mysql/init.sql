@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS streams (
     title VARCHAR(255) NOT NULL,
     stream_key VARCHAR(255) UNIQUE NOT NULL,
     streamer_name VARCHAR(255) NOT NULL,
-    status ENUM('active', 'inactive') DEFAULT 'inactive',
+    status ENUM('active', 'inactive', 'ended') DEFAULT 'inactive',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -125,15 +125,21 @@ router.get('/recordings/:streamKey', async (req, res) => {
         }
 
         const recordings = await StreamRecording.findAll({
-            where: {
-                stream_id: stream.id
-            },
+            where: { stream_id: stream.id },
             order: [['started_at', 'DESC']]
         });
 
         res.json({
             success: true,
-            data: recordings
+            data: recordings.map(recording => ({
+                id: recording.id,
+                file_url: recording.file_url,
+                status: recording.status,
+                started_at: recording.started_at,
+                ended_at: recording.ended_at,
+                duration: recording.duration,
+                size: recording.size
+            }))
         });
 
     } catch (error) {
@@ -159,6 +165,42 @@ router.post('/streams/recording', async (req, res) => {
     console.error('Error handling recording:', error);
     res.status(500).send({ success: false, error: 'Internal server error' });
   }
+});
+
+// API xóa recording
+router.delete('/recording/:recordingId', async (req, res) => {
+    try {
+        const recording = await StreamRecording.findByPk(req.params.recordingId);
+
+        if (!recording) {
+            return res.status(404).json({
+                success: false,
+                error: "Recording not found"
+            });
+        }
+
+        // Xóa file vật lý
+        const filePath = path.join(__dirname, '../../../recordings', path.basename(recording.file_url));
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        // Xóa record trong database
+        await recording.destroy();
+
+        res.json({
+            success: true,
+            message: "Recording deleted successfully"
+        });
+
+    } catch (error) {
+        console.error('Error deleting recording:', error);
+        res.status(500).json({
+            success: false,
+            error: "Internal server error",
+            details: error.message
+        });
+    }
 });
 
 module.exports = router;

@@ -7,22 +7,23 @@ const Stream = sequelize.define('Stream', {
     primaryKey: true,
     autoIncrement: true
   },
-  title: {
-    type: DataTypes.STRING,
-    allowNull: false
-  },
   stream_key: {
     type: DataTypes.STRING(255),
-    allowNull: false,
-    unique: true
+    unique: true,
+    allowNull: false
+  },
+  title: {
+    type: DataTypes.STRING(255),
+    allowNull: false
   },
   streamer_name: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(255),
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('active', 'inactive'),
-    defaultValue: 'inactive'
+    type: DataTypes.ENUM('active', 'inactive', 'ended'),
+    defaultValue: 'inactive',
+    allowNull: false
   },
   created_at: {
     type: DataTypes.DATE,
@@ -31,12 +32,7 @@ const Stream = sequelize.define('Stream', {
 }, {
   tableName: 'streams',
   timestamps: false,
-  indexes: [
-    {
-      unique: true,
-      fields: ['stream_key']
-    }
-  ]
+  underscored: true
 });
 
 module.exports = Stream;
