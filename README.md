@@ -126,7 +126,7 @@ The **Livestreaming Platform** is a real-time video streaming and interaction pl
 6. **Access Control:**
     - The backend checks user permissions before allowing actions such as starting a live stream or sending messages.
 
-### 4.Directory Structure
+### Directory Structure
 ```
 livestreaming/
 ├── Back_end/
